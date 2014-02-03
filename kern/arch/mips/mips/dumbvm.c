@@ -1,6 +1,7 @@
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
+#include <array.h>
 #include <thread.h>
 #include <curthread.h>
 #include <addrspace.h>
@@ -18,10 +19,168 @@
 /* under dumbvm, always have 48k of user stack */
 #define DUMBVM_STACKPAGES    12
 
+int vm_initialized = 0;
+struct array *buddylist;
+
+struct buddy_entry
+{
+	u_int32_t paddr;
+	int pages;
+	int inuse;
+};
+
+void buddylist_printstats(void)
+{
+	int i;
+	struct buddy_entry *be;
+
+	kprintf("+-----BUDDYLIST--------------------+\n");
+	kprintf("| idx |    paddr   | pages | inuse |\n");
+	for (i=0; i<array_getnum(buddylist); i++)
+	{
+		be = (struct buddy_entry *) array_getguy(buddylist, i);	
+		kprintf("| %03d | 0x%08x |    %02d |     %01d |\n", i, be->paddr, be->pages, be->inuse);
+	}
+	kprintf("+----------------------------------+\n");
+}
+
 void
 vm_bootstrap(void)
 {
-	/* Do nothing. */
+	u_int32_t lo, hi;
+	struct buddy_entry *be;
+	int npages;
+
+	buddylist = array_create();
+
+	be = (struct buddy_entry *) kmalloc(sizeof(struct buddy_entry));
+	if (be==NULL)
+	{
+		panic("vm_bootstrap unable to allocate memory\n");
+	}
+
+	ram_getsize(&lo, &hi);
+	kprintf("memory after bootstraps:\n");
+	kprintf("first: 0x%08x, last 0x%08x\n", lo, hi);
+
+	/* calculate the first buddylist entry */
+	npages=(hi-lo)/PAGE_SIZE;
+
+	be->paddr = lo;
+	be->pages = npages;
+	be->inuse = 0;
+	array_add(buddylist, be);
+	vm_initialized = 1;
+	kprintf("initialized vm with one buddy @ 0x%08x with %u pages\n", lo, npages);
+
+}
+
+/* finds the best fit for the request pageload
+ * return an index into the buddylist */
+static
+int
+find_buddy(int npages)
+{
+	int i;
+	int chosen;
+	struct buddy_entry *curbe, *chosbe;
+
+	chosen = -1;
+	for (i=0; i<array_getnum(buddylist); i++)
+	{
+		curbe = (struct buddy_entry *) array_getguy(buddylist, i);
+		if (curbe->inuse == 0 && curbe->pages >= npages)
+		{
+			if (chosen==-1 || curbe->pages < chosbe->pages)
+			{
+				chosen = i;
+				chosbe = curbe;
+			}
+		}
+
+	}
+
+	return chosen;
+}
+
+
+static
+paddr_t
+calculate_buddy(int npages)
+{
+	struct buddy_entry *be;
+	struct buddy_entry *b2;
+	int buddyi;
+	int nextsize;
+	paddr_t nextpaddr;
+
+	// finds the first buddy able to fit the number of requested pages 
+	buddyi = find_buddy(npages);
+	be = (struct buddy_entry *) array_getguy(buddylist, buddyi);
+
+	nextpaddr = be->paddr;
+	nextsize = be->pages / 2;
+	while (nextsize >= npages)
+	{
+		// create two new buddy entries 
+		kfree(be);
+		be = (struct buddy_entry *) kmalloc(sizeof(struct buddy_entry));
+		if (be==NULL)
+			panic("vm: could not calculate next buddy\n");
+		b2 = (struct buddy_entry *) kmalloc(sizeof(struct buddy_entry));
+		if (b2==NULL)
+			panic("vm: could not calculate next buddy\n");
+
+		be->paddr = nextpaddr;
+		be->pages = nextsize;
+		be->inuse = 0;
+
+		b2->paddr = nextpaddr + (nextsize * PAGE_SIZE);
+		b2->pages = nextsize;
+		b2->inuse = 0;
+
+		array_setguy(buddylist, buddyi, be);
+		array_add(buddylist, b2);
+
+		// divide the page 
+		nextsize /= 2;
+	}
+
+	be->inuse = 1;
+	return be->paddr;
+}
+
+static
+void
+freeppage(paddr_t addr)
+{
+	int i;
+	struct buddy_entry *be;
+
+	for (i=0; i<array_getnum(buddylist); i++)
+	{
+		be = (struct buddy_entry *) array_getguy(buddylist, i);	
+		if (be->paddr == addr)
+		{
+			be->inuse = 0;
+			return;
+		}
+	}
+}
+
+static
+paddr_t
+getpframes(unsigned long npages)
+{
+	int spl;
+	paddr_t addr;
+
+	spl = splhigh();
+
+	addr = calculate_buddy(npages);
+
+	splx(spl);
+	return addr;
 }
 
 static
@@ -33,7 +192,10 @@ getppages(unsigned long npages)
 
 	spl = splhigh();
 
-	addr = ram_stealmem(npages);
+	if (vm_initialized)
+		addr = calculate_buddy(npages);
+	else
+		addr = ram_stealmem(npages);
 	
 	splx(spl);
 	return addr;
@@ -175,6 +337,9 @@ as_create(void)
 void
 as_destroy(struct addrspace *as)
 {
+	freeppage(as->as_pbase1);
+	freeppage(as->as_pbase2);
+	freeppage(as->as_stackpbase);
 	kfree(as);
 }
 
@@ -233,6 +398,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 	return EUNIMP;
 }
 
+/* gets physical pages for each region */
 int
 as_prepare_load(struct addrspace *as)
 {
