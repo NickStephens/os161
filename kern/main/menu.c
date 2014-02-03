@@ -14,6 +14,7 @@
 #include <vfs.h>
 #include <sfs.h>
 #include <test.h>
+#include <vm.h>
 #include "opt-synchprobs.h"
 #include "opt-sfs.h"
 #include "opt-net.h"
@@ -358,6 +359,18 @@ cmd_kheapstats(int nargs, char **args)
 	return 0;
 }
 
+static
+int
+cmd_buddyliststats(int nargs, char **args)
+{
+	(void)nargs;
+	(void)args;
+
+	buddylist_printstats();
+
+	return 0;
+}
+
 ////////////////////////////////////////
 //
 // Menus.
@@ -463,6 +476,7 @@ static const char *mainmenu[] = {
 	"[1b] Stoplight                      ",
 #endif
 	"[kh] Kernel heap stats              ",
+	"[bs] Buddylist stats		     ",
 	"[q] Quit and shut down              ",
 	NULL
 };
@@ -518,6 +532,7 @@ static struct {
 
 	/* stats */
 	{ "kh",         cmd_kheapstats },
+	{ "bs",		cmd_buddyliststats },
 
 	/* base system tests */
 	{ "at",		arraytest },

@@ -26,4 +26,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress);
 vaddr_t alloc_kpages(int npages);
 void free_kpages(vaddr_t addr);
 
+/* Print buddylist stats */
+void buddylist_printstats(void);
+
 #endif /* _VM_H_ */
