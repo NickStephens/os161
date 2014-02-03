@@ -1,2 +1,4 @@
 *.o
 kern/compile/*
+*~
+.*.swp
