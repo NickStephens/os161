@@ -111,7 +111,7 @@ calculate_buddy(int npages)
 	struct buddy_entry *be;
 	struct buddy_entry *b2;
 	int buddyi;
-	int nextsize;
+	int nextsize, oldsize;
 	paddr_t nextpaddr;
 
 	// finds the first buddy able to fit the number of requested pages 
@@ -119,7 +119,8 @@ calculate_buddy(int npages)
 	be = (struct buddy_entry *) array_getguy(buddylist, buddyi);
 
 	nextpaddr = be->paddr;
-	nextsize = be->pages / 2;
+	oldsize = be->pages;
+	nextsize = oldsize / 2;
 	while (nextsize >= npages)
 	{
 		// create two new buddy entries 
@@ -136,13 +137,14 @@ calculate_buddy(int npages)
 		be->inuse = 0;
 
 		b2->paddr = nextpaddr + (nextsize * PAGE_SIZE);
-		b2->pages = nextsize;
+		b2->pages = oldsize - nextsize;
 		b2->inuse = 0;
 
 		array_setguy(buddylist, buddyi, be);
 		array_add(buddylist, b2);
 
 		// divide the page 
+		oldsize = nextsize;
 		nextsize /= 2;
 	}
 
