@@ -205,8 +205,6 @@ cv_create(const char *name)
 		return NULL;
 	}
 	
-	// add stuff here as needed
-	
 	return cv;
 }
 
@@ -214,8 +212,6 @@ void
 cv_destroy(struct cv *cv)
 {
 	assert(cv != NULL);
-
-	// add stuff here as needed
 	
 	kfree(cv->name);
 	kfree(cv);
@@ -224,23 +220,44 @@ cv_destroy(struct cv *cv)
 void
 cv_wait(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	int spl;
+
+	spl = splhigh();
+
+	lock_release(lock);
+
+	thread_sleep(cv);
+
+	/* I worried for a little bit about deadlock
+	 * with this statement, but then I convinced myself with
+	 * the following rationale:
+	 *  if the lock has already been taken by another signaled
+	 *  thread, this thread attempting to take the lock now
+	 *  will give up the spl state when they fail to claim
+	 *  the lock and go to sleep.
+	 */
+	lock_acquire(lock);
+
+	splx(spl);
 }
 
 void
 cv_signal(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	(void)cv;
+	(void)lock;
 }
 
 void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	int spl;
+
+	spl = splhigh();
+
+	lock_release(lock);
+
+	thread_wakeup(cv);
+
+	splx(spl);
 }
