@@ -52,6 +52,9 @@ struct lock {
 	char *name;
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
+	
+	struct thread *holder;
+	int held;
 };
 
 struct lock *lock_create(const char *name);
