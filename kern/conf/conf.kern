@@ -451,6 +451,7 @@ file		test/tt3.c
 file		test/synchtest.c
 file		test/malloctest.c
 file		test/fstest.c
+file		test/kprintftest.c
 optfile net	test/nettest.c
 
 # UW options for different assignments

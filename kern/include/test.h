@@ -40,6 +40,9 @@ int malloctest(int, char **);
 int mallocstress(int, char **);
 int nettest(int, char **);
 
+/* my tests */
+int kprintftest(void);
+
 /* Kernel menu system */
 void menu(char *argstr);
 
