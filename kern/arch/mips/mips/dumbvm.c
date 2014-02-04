@@ -6,6 +6,10 @@
 #include <curthread.h>
 #include <addrspace.h>
 #include <vm.h>
+#include <vfs.h>
+#include <uio.h>
+#include <vnode.h>
+#include <kern/unistd.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
@@ -20,6 +24,7 @@
 #define DUMBVM_STACKPAGES    12
 
 int vm_initialized = 0;
+struct vnode *randdev;
 struct array *buddylist;
 
 struct buddy_entry
@@ -65,6 +70,8 @@ vm_bootstrap(void)
 
 	/* calculate the first buddylist entry */
 	npages=(hi-lo)/PAGE_SIZE;
+
+	vfs_open("random:", O_RDONLY, &randdev);
 
 	be->paddr = lo;
 	be->pages = npages;
@@ -279,8 +286,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	vtop1 = vbase1 + as->as_npages1 * PAGE_SIZE;
 	vbase2 = as->as_vbase2;
 	vtop2 = vbase2 + as->as_npages2 * PAGE_SIZE;
-	stackbase = USERSTACK - DUMBVM_STACKPAGES * PAGE_SIZE;
-	stacktop = USERSTACK;
+	stackbase = as->as_stackvbase - DUMBVM_STACKPAGES * PAGE_SIZE;
+	stacktop = as->as_stackvbase;
 
 	if (faultaddress >= vbase1 && faultaddress < vtop1) {
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
@@ -293,6 +300,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 	else {
 		splx(spl);
+		buddylist_printstats();
 		return EFAULT;
 	}
 
@@ -311,6 +319,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		splx(spl);
 		return 0;
 	}
+
 
 	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
 	splx(spl);
@@ -433,12 +442,36 @@ as_complete_load(struct addrspace *as)
 	return 0;
 }
 
+/* prototype for ASLR stack */
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
+	struct vnode *v;
+	struct uio ku;
+	unsigned int rand;
+	int newstack;
+	int result;
+
 	assert(as->as_stackpbase != 0);
 
-	*stackptr = USERSTACK;
+	mk_kuio(&ku, &rand, 4, 0, UIO_READ);
+	VOP_READ(randdev, &ku);
+	kprintf("got random # 0x%08x\n", rand);
+
+	// code starts at        	   0x00400000
+	//
+	// code will be imagined to end at 0x00500000
+	// 12 pages for stack 		   0x005c0000
+	// kernel code starts at 	   0x80000000
+
+	rand %= 0x7fa40000;
+	newstack = 0x005c0000 + rand;
+	newstack &= PAGE_FRAME;
+
+	kprintf("spawning stack @ 0x%08x\n", newstack);
+
+	as->as_stackvbase = newstack;
+	*stackptr = newstack;
 	return 0;
 }
 
