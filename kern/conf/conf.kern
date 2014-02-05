@@ -382,7 +382,12 @@ file      main/menu.c
 file      userprog/loadelf.c
 file      userprog/runprogram.c
 file      userprog/uio.c
+
+#
+# systemcalls
+
 file	  syscall/exit.c
+file	  syscall/execv.c
 
 #
 # Virtual memory system
