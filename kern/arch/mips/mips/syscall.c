@@ -5,6 +5,9 @@
 #include <machine/spl.h>
 #include <machine/trapframe.h>
 #include <kern/callno.h>
+#include <thread.h>
+#include <addrspace.h>
+#include <curthread.h>
 #include <syscall.h>
 
 
@@ -74,6 +77,7 @@ mips_syscall(struct trapframe *tf)
 
 	    case SYS__exit:
 		err = sys__exit(tf->tf_a0);
+		break;
 	    /* Add stuff here */
 
 	    case SYS_execv:
@@ -82,7 +86,16 @@ mips_syscall(struct trapframe *tf)
 			err = -retval;
 		else
 			err = 0;
+		break;
  
+	    case SYS_fork:
+		retval = sys_fork(tf);
+		if (retval < 0)
+			err = -retval;
+		else
+			err = 0;
+		break;
+
 	    default:
 		kprintf("Unknown syscall %d\n", callno);
 		err = ENOSYS;
@@ -119,12 +132,13 @@ mips_syscall(struct trapframe *tf)
 void
 md_forkentry(struct trapframe *tf)
 {
-	/*
-	 * This function is provided as a reminder. You need to write
-	 * both it and the code that calls it.
-	 *
-	 * Thus, you can trash it and do things another way if you prefer.
-	 */
+	struct trapframe childtf;
 
-	(void)tf;
+	memmove(&childtf, tf, sizeof(struct trapframe));
+	
+	curthread->t_vmspace = childtf.tf_vaddr;
+	childtf.tf_epc += 4; /* jump past the fork */
+	childtf.tf_v0 = 0; /* pass the child 0 */
+
+	mips_usermode(&childtf);
 }
