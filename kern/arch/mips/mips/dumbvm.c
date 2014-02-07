@@ -288,6 +288,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	vtop2 = vbase2 + as->as_npages2 * PAGE_SIZE;
 	stackbase = as->as_stackvbase - DUMBVM_STACKPAGES * PAGE_SIZE;
 	stacktop = as->as_stackvbase;
+	//stackbase = USERTOP - (DUMBVM_STACKPAGES * PAGE_SIZE);
+	//stacktop = USERTOP;
 
 	if (faultaddress >= vbase1 && faultaddress < vtop1) {
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
@@ -340,6 +342,7 @@ as_create(void)
 	as->as_vbase2 = 0;
 	as->as_pbase2 = 0;
 	as->as_npages2 = 0;
+	as->as_stackvbase = 0;
 	as->as_stackpbase = 0;
 
 	return as;
@@ -489,6 +492,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	new->as_npages1 = old->as_npages1;
 	new->as_vbase2 = old->as_vbase2;
 	new->as_npages2 = old->as_npages2;
+	new->as_stackvbase = old->as_stackvbase;
 
 	if (as_prepare_load(new)) {
 		as_destroy(new);
