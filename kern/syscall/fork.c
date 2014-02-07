@@ -44,7 +44,7 @@ sys_fork(struct trapframe *tf)
 	memcpy(childtrapframe, tf, sizeof(struct trapframe));
 	childtrapframe->tf_vaddr = retaddrspace;
 	result = thread_fork("fork", childtrapframe, 0, md_forkentry, &retthread);
-	retthread->t_vmspace = retaddrspace;
+	//retthread->t_vmspace = retaddrspace;
 	if (result)
 	{
 		return -result;
