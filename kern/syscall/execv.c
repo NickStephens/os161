@@ -8,7 +8,9 @@
 #include <vfs.h>
 #include <addrspace.h>
 
-void kfree_all(char *argv[])
+static 
+void 
+kfree_all(char *argv[])
 {
 	int i;
 
@@ -17,7 +19,8 @@ void kfree_all(char *argv[])
 
 }
 
-int sys_execv(const char *path, char *argv[])
+int 
+sys_execv(const char *path, char *argv[])
 {
 	struct vnode *v;
 	char *kpath;
@@ -139,6 +142,11 @@ int sys_execv(const char *path, char *argv[])
 	newargv[j] = NULL;
 	cpaddr -= sizeof(char *) * (j+1);
 	copyout(newargv, cpaddr, sizeof(char *) * (j+1));
+
+	kfree_all(savedargv);
+	kfree(savedargv);
+	kfree(newargv);
+	kfree(kpath);
 
 	/* debug */
 	/*
