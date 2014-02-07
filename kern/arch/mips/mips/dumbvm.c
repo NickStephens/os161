@@ -459,7 +459,6 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
 	mk_kuio(&ku, &rand, 4, 0, UIO_READ);
 	VOP_READ(randdev, &ku);
-	kprintf("got random # 0x%08x\n", rand);
 
 	// code starts at        	   0x00400000
 	//
@@ -470,8 +469,6 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	rand %= 0x7fa40000;
 	newstack = 0x005c0000 + rand;
 	newstack &= PAGE_FRAME;
-
-	kprintf("spawning stack @ 0x%08x\n", newstack);
 
 	as->as_stackvbase = newstack;
 	*stackptr = newstack;
