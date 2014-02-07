@@ -20,6 +20,7 @@ void kfree_all(char *argv[])
 int sys_execv(const char *path, char *argv[])
 {
 	struct vnode *v;
+	char *kpath;
 	vaddr_t entrypoint, stackptr;
 	char **savedargv;
 	char **newargv;
@@ -29,6 +30,10 @@ int sys_execv(const char *path, char *argv[])
 	int length, tail;	
 
 	/* copyin arguments */
+	/* this would be okay if we had a way to send termination signals to 
+	 * a process like linux, the problem is that we don't and so if a 
+	 * a userland process passes in NULL as argv the entire kernel will
+	 * crash. In linux, just the userland caller would crash */
 	for (i=0; argv[i]; i++);
 
 	savedargv = (char **) kmalloc(sizeof(char **) * i);
@@ -57,6 +62,20 @@ int sys_execv(const char *path, char *argv[])
 	}
 
 	/* old addrspace is no longer needed */
+	kpath = (char *) kmalloc(strlen(path)+1);
+	if (kpath==NULL)
+	{
+		return -ENOMEM;
+	}
+	result = copyin(path, kpath, strlen(path)+1);
+	if (result)
+	{
+		kfree_all(savedargv);
+		kfree(savedargv);
+		kfree(kpath);
+		return -result;
+	}
+
 	as_destroy(curthread->t_vmspace);
 
 	curthread->t_vmspace = as_create();
@@ -65,7 +84,7 @@ int sys_execv(const char *path, char *argv[])
 		return -ENOMEM;
 	}
 
-	result = vfs_open(path, O_RDONLY, &v);
+	result = vfs_open(kpath, O_RDONLY, &v);
 	if (result) {
 		as_destroy(curthread->t_vmspace);
 		kfree_all(savedargv);
