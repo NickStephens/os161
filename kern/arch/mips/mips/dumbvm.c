@@ -34,6 +34,21 @@ struct buddy_entry
 	int inuse;
 };
 
+void tlb_printstats(void)
+{
+	int i;
+	u_int32_t elo, ehi;
+
+	kprintf("+---TLB---------------------+\n");
+	kprintf("| idx | ehi      | elo      |\n");
+	for (i=0; i<NUM_TLB; i++)
+	{
+		TLB_Read(&ehi, &elo, i);
+		kprintf("| %03d | %08x | %08x |\n", i, ehi, elo);
+	}
+	kprintf("+---------------------------+\n");
+}
+
 void buddylist_printstats(void)
 {
 	int i;
@@ -225,9 +240,7 @@ alloc_kpages(int npages)
 void 
 free_kpages(vaddr_t addr)
 {
-	/* nothing */
-
-	(void)addr;
+	freeppage(KVADDR_TO_PADDR(addr));
 }
 
 int
@@ -357,6 +370,13 @@ as_destroy(struct addrspace *as)
 	kfree(as);
 }
 
+/* this is such a stupid function */
+/* my guess is that the only reason this exists is to
+ * avoid conflicts within the TLB. A process table
+ * will need to be written before this can be scrapped.
+ * A process table would allow us to write unique TLB
+ * entries while allowing programs to use identical
+ * virtual addresses */
 void
 as_activate(struct addrspace *as)
 {
@@ -365,6 +385,9 @@ as_activate(struct addrspace *as)
 	(void)as;
 
 	spl = splhigh();
+
+	// only uncomment this when a breakpoint is set on as_activate!!
+	// tlb_printstats();
 
 	for (i=0; i<NUM_TLB; i++) {
 		TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
