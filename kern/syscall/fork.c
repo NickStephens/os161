@@ -23,6 +23,7 @@ sys_fork(struct trapframe *tf)
 	struct addrspace *retaddrspace;
 	struct trapframe *childtrapframe;
 	int result;
+	unsigned long *entryargs;	
 
 	retaddrspace = as_create();
 	if (retaddrspace==NULL)
@@ -31,7 +32,6 @@ sys_fork(struct trapframe *tf)
 	result = as_copy(curthread->t_vmspace, &retaddrspace);
 	if (result)
 	{
-		kprintf("got result %d\n", result);
 		return -result;
 	}
 
@@ -41,10 +41,16 @@ sys_fork(struct trapframe *tf)
 		return -ENOMEM;
 	}
 
+	entryargs = (unsigned long *) kmalloc(sizeof(unsigned long)*3);
+	if (entryargs==NULL)
+	{
+		kfree(childtrapframe);
+		return -ENOMEM;
+	}
+
 	memcpy(childtrapframe, tf, sizeof(struct trapframe));
-	childtrapframe->tf_vaddr = retaddrspace;
-	result = thread_fork("fork", childtrapframe, 0, md_forkentry, &retthread);
-	//retthread->t_vmspace = retaddrspace;
+	entryargs[0] = childtrapframe; entryargs[1] = retaddrspace; entryargs[2] = 0;
+	result = thread_fork("fork", entryargs, 0, md_forkentry, &retthread);
 	if (result)
 	{
 		return -result;

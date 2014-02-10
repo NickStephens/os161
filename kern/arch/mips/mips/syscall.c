@@ -130,15 +130,25 @@ mips_syscall(struct trapframe *tf)
 }
 
 void
-md_forkentry(struct trapframe *tf)
+md_forkentry(u_int32_t *args)
 {
+	struct trapframe *argtf;
+	struct addrspace *argas;
+	pid_t argpid;
 	struct trapframe childtf;
 
-	memmove(&childtf, tf, sizeof(struct trapframe));
+	argtf = args[0]; argas = args[1]; argpid = args[2];
+
+	memmove(&childtf, argtf, sizeof(struct trapframe));
 	
-	curthread->t_vmspace = childtf.tf_vaddr;
+	curthread->t_vmspace = argas;
+	curthread->t_pid = argpid;
+
 	childtf.tf_epc += 4; /* jump past the fork */
 	childtf.tf_v0 = 0; /* pass the child 0 */
+
+	kfree(argtf);
+	kfree(args);
 
 	mips_usermode(&childtf);
 }
