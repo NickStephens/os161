@@ -5,6 +5,15 @@
 #include <curthread.h>
 #include <proc.h>
 
+void
+proc_bootstrap(void)
+{
+	proctable = array_create();	
+	proctable_lock = lock_create("proctable_lock");
+	if (proctable_lock==NULL)
+		panic("proc_bootstrap: failed to initialize proctable_lock\n");
+}
+
 struct process *
 getprocess(pid_t pid)
 {
