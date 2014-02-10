@@ -45,7 +45,8 @@ struct process *
 getcurprocess();
 
 /* makes a new process in the process table, returns the pid_t of this new
- * process to be used in assigning to threads */
+ * process to be used in assigning to threads. Returns a negative pid_t on
+ * error */
 pid_t 
 newprocess(pid_t parent);
 
