@@ -57,5 +57,6 @@ ringparent()
 	if (parentproc==NULL)
 		return;
 
+	lock_acquire(proctable_lock);
 	cv_broadcast(parentproc->childexit, proctable_lock);
 }
