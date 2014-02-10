@@ -32,6 +32,10 @@ struct process
 	u_int8_t exitcode;
 };
 
+/* bootstrap */
+void
+proc_bootstrap(void);
+
 /* gets an arbitrary process entry */
 struct process * 
 getprocess(pid_t pid);
@@ -39,6 +43,11 @@ getprocess(pid_t pid);
 /* gets the curthread's process entry */
 struct process *
 getcurprocess();
+
+/* makes a new process in the process table, returns the pid_t of this new
+ * process to be used in assigning to threads */
+pid_t 
+newprocess(pid_t parent);
 
 /* notifies the parent kernel thread by broadcasting on it's childexit cv */
 void
