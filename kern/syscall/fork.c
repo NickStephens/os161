@@ -5,6 +5,7 @@
 #include <curthread.h>
 #include <addrspace.h>
 #include <machine/trapframe.h>
+#include <proc.h>
 
 void
 addrspace_dump(struct addrspace *as)
@@ -22,8 +23,9 @@ sys_fork(struct trapframe *tf)
 	struct thread *retthread;
 	struct addrspace *retaddrspace;
 	struct trapframe *childtrapframe;
-	int result;
 	unsigned long *entryargs;	
+	pid_t childpid;
+	int result;
 
 	retaddrspace = as_create();
 	if (retaddrspace==NULL)
@@ -49,7 +51,16 @@ sys_fork(struct trapframe *tf)
 	}
 
 	memcpy(childtrapframe, tf, sizeof(struct trapframe));
-	entryargs[0] = childtrapframe; entryargs[1] = retaddrspace; entryargs[2] = 0;
+
+	childpid = newprocess(curthread->t_pid);
+	if (childpid < 0)
+	{
+		kfree(childtrapframe);
+		kfree(entryargs);
+		return (int) childpid;
+	}
+
+	entryargs[0] = childtrapframe; entryargs[1] = retaddrspace; entryargs[2] = childpid;
 	result = thread_fork("fork", entryargs, 0, md_forkentry, &retthread);
 	if (result)
 	{
