@@ -37,6 +37,13 @@ struct thread {
 	 * and is manipulated by the virtual filesystem (VFS) code.
 	 */
 	struct vnode *t_cwd;
+
+	/*
+	 * This is public because the process API needs access to this.
+	 * to resolve a process structure from curthread.
+	 */
+	
+	pid_t t_pid;
 };
 
 /* Call once during startup to allocate data structures. */

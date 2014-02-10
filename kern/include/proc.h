@@ -3,14 +3,14 @@
 
 #include <types.h>
 #include <array.h>
+#include <thread.h>
 #include <synch.h>
 
 /* PROCESS API */
 
-typedef unsigned int pid_t; 
-
 /* global process table */
 struct array *proctable;
+struct lock  *proctable_lock;
 
 /* Each kernel thread should have a corresponding process structure 
  * A thread can find its own process structure by calling getprocess()
@@ -18,7 +18,7 @@ struct array *proctable;
  * function provided in this API */
 
 /* the process structure:
- *  parent    - pointer to the parent kernel thread 
+ *  parent    - pid of the parent
  *  childexit - when a child exits, it will ring this CV to assist waitpid()
  *  exitted   - flag marking whether the process has exitted or not
  *  exitcode  - self explanatory, undefined if exitted is 0
@@ -26,10 +26,10 @@ struct array *proctable;
 struct process
 {
 	/* struct filetable *ftable; */
-	struct thread *parent;
-	struct *childexit;
-	short int exitted;
-	short unsigned int exitcode;
+	pid_t parentpid;
+	struct cv *childexit;
+	int8_t exited;
+	u_int8_t exitcode;
 };
 
 /* gets an arbitrary process entry */
