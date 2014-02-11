@@ -17,8 +17,8 @@ proc_bootstrap(void)
 		panic("proc_bootstrap: failed to initialize proctable_lock\n");
 	
 	/* should always be zero */
-	initpid = newprocess(0);
-	assert(initpid==0);
+	initpid = newprocess(1);
+	assert(initpid==1);
 
 	curthread->t_pid = initpid;
 
@@ -34,7 +34,10 @@ getprocess(pid_t pid)
 	if (pid > array_getnum(proctable))
 		proc = NULL;
 	else 
+	{
+		pid -= 1;
 		proc = (struct process *) array_getguy(proctable, (int) pid);
+	}
 
 	lock_release(proctable_lock);
 
@@ -48,6 +51,7 @@ getcurprocess()
 	struct process *proc;
 
 	curpid = curthread->t_pid;
+	curpid -= 1;
 
 	lock_acquire(proctable_lock);
 	assert(curpid < array_getnum(proctable));
@@ -88,7 +92,7 @@ newprocess(pid_t parent)
 
 	lock_release(proctable_lock);
 
-	return newpid;
+	return newpid+1;
 }
 
 /* If being called by an exiting child, this should only be called
