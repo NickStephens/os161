@@ -25,12 +25,14 @@ sys_waitpid(pid_t pid, int *status, int options)
 	/* status must point to userland */
 	if (status > USERTOP)
 	{
+		kprintf("error stat\n");
 		return (pid_t) -EFAULT;	
 	}
 
 	/* currently, no options should be selected */
-	if (options==0)
+	if (options!=0)
 	{
+
 		return (pid_t) -EINVAL;
 	}
 
@@ -55,8 +57,9 @@ sys_waitpid(pid_t pid, int *status, int options)
 	/* do the wait */
 	lock_acquire(proctable_lock);
 	cv_wait(curproc->childexit, proctable_lock);
+	lock_release(proctable_lock);
 	/* TODO clean up child here */
 
-	status = proc->exitcode;
+	*status = proc->exitcode;
 	return pid;
 }
