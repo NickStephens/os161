@@ -67,5 +67,5 @@ sys_fork(struct trapframe *tf)
 		return -result;
 	}
 
-	return 1;
+	return childpid;
 }
