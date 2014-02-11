@@ -1,11 +1,20 @@
 #include <types.h>
 #include <lib.h>
 #include <thread.h>
+#include <proc.h>
 
 int
 sys__exit(int exitcode)
 {
-	thread_exit();
+	struct process *proc;
 
-	return exitcode;
+	proc = getcurprocess();
+
+	lock_acquire(proctable_lock);
+	proc->exitcode = exitcode;
+	lock_release(proctable_lock);
+
+	ringparent();
+
+	thread_exit();
 }
