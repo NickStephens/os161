@@ -25,7 +25,6 @@ sys_waitpid(pid_t pid, int *status, int options)
 	/* status must point to userland */
 	if (status > USERTOP)
 	{
-		kprintf("error stat\n");
 		return (pid_t) -EFAULT;	
 	}
 
