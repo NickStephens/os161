@@ -9,12 +9,14 @@
 #include <lib.h>
 #include <clock.h>
 #include <thread.h>
+#include <curthread.h>
 #include <syscall.h>
 #include <uio.h>
 #include <vfs.h>
 #include <sfs.h>
 #include <test.h>
 #include <vm.h>
+#include <proc.h>
 #include "opt-synchprobs.h"
 #include "opt-sfs.h"
 #include "opt-net.h"
@@ -57,6 +59,7 @@ cmd_progthread(void *ptr, unsigned long nargs)
 {
 	char **args = ptr;
 	char progname[128];
+	pid_t newpid;
 	int result;
 
 	assert(nargs >= 1);
@@ -69,6 +72,12 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	assert(strlen(args[0]) < sizeof(progname));
 
 	strcpy(progname, args[0]);
+
+	/* cheesy hack to get exit working */
+	newpid = newprocess(1);
+	if (newpid < 0)
+		panic("cmd_progthread: allocating new process %s", strerror(newpid));
+	curthread->t_pid = newpid;
 
 	result = runprogram(progname);
 	if (result) {
@@ -110,6 +119,7 @@ common_prog(int nargs, char **args)
 	result = thread_fork(args[0] /* thread name */,
 			args /* thread arg */, nargs /* thread arg */,
 			cmd_progthread, NULL);
+	
 	if (result) {
 		kprintf("thread_fork failed: %s\n", strerror(result));
 		return result;
@@ -361,6 +371,18 @@ cmd_kheapstats(int nargs, char **args)
 
 static
 int
+cmd_tlbstats(int nargs, char **args)
+{
+	(void)nargs;
+	(void)args;
+
+	tlb_printstats();
+
+	return 0;
+}
+
+static
+int
 cmd_buddyliststats(int nargs, char **args)
 {
 	(void)nargs;
@@ -478,6 +500,7 @@ static const char *mainmenu[] = {
 #endif
 	"[kh] Kernel heap stats              ",
 	"[bs] Buddylist stats		     ",
+	"[ts] TLB stats			     ",
 	"[q] Quit and shut down              ",
 	NULL
 };
@@ -534,6 +557,7 @@ static struct {
 	/* stats */
 	{ "kh",         cmd_kheapstats },
 	{ "bs",		cmd_buddyliststats },
+	{ "ts",		cmd_tlbstats },
 
 	/* base system tests */
 	{ "at",		arraytest },
