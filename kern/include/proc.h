@@ -8,6 +8,14 @@
 
 /* PROCESS API */
 
+/* TODO add a new entry, newprocess_init to initialize the process of the 
+ * origin thread. We make this distinction to handle filetable copying.
+ * The origin thread will have to initialize its own filetable based off
+ * the thread standards. I suggest have the current newprocess be wrapped
+ * with two function which return a pid_t but handle filetable copying 
+ * differently, these functions being the updated newprocess and 
+ * newprocess_init */
+
 /* global process table */
 struct array *proctable;
 struct lock  *proctable_lock;
