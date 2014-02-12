@@ -53,13 +53,10 @@ getcurprocess()
 	curpid = curthread->t_pid;
 	curpid -= 1;
 
-	lock_acquire(proctable_lock);
-	assert(curpid < array_getnum(proctable));
+	proc = getprocess(curpid);
+	if (proc==NULL)	
+		panic("getcurprocess: kernel thread with invalid process id\n");
 
-	proc = (struct process *) array_getguy(proctable, (int) curpid);	
-
-	lock_release(proctable_lock);
-	
 	return proc;
 }
 
