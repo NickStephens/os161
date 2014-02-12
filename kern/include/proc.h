@@ -18,7 +18,7 @@ struct lock  *proctable_lock;
  * function provided in this API */
 
 /* the process structure:
- *  parent    - pid of the parent
+ *  parentpid - pid of the parent
  *  childexit - when a child exits, it will ring this CV to assist waitpid()
  *  exitted   - flag marking whether the process has exitted or not
  *  exitcode  - self explanatory, undefined if exitted is 0
