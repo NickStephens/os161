@@ -399,6 +399,12 @@ file	  syscall/waitpid.c
 file	  proc/proc.c
 
 #
+# file api
+#
+
+file	  file/file.c
+
+#
 # Virtual memory system
 # (you will probably want to add stuff here while doing the VM assignment)
 #
