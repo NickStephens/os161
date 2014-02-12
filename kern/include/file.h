@@ -46,4 +46,11 @@ newfilemapping(struct vnode *v, int flags);
 struct array *
 copyfiletable(struct array *);
 
+/* finds the first free file descriptor in the filetable, if there
+ * are no free slots, return -1 */
+/* since this is inefficient as a loop, it may be better to just define
+ * an array to contain free descriptors */
+int
+findfreedescriptor();
+
 #endif
