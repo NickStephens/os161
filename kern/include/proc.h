@@ -25,7 +25,7 @@ struct lock  *proctable_lock;
  */
 struct process
 {
-	/* struct filetable *ftable; */
+	struct array *filetable;
 	pid_t parentpid;
 	struct cv *childexit;
 	int8_t exited;

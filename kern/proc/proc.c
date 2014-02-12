@@ -78,6 +78,7 @@ newprocess(pid_t parent)
 		return (pid_t) -ENOMEM;
 	}
 
+	newproc->filetable = NULL;
 	newproc->parentpid = parent;
 	newproc->childexit = newcv;
 	newproc->exited = 0;
