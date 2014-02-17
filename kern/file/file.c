@@ -6,6 +6,8 @@
 #include <synch.h>
 #include <vnode.h>
 #include <vfs.h>
+#include <thread.h>
+#include <curthread.h>
 #include <file.h>
 #include <proc.h>
 
@@ -63,7 +65,6 @@ newfilemapping(struct vnode *v, int flags)
 	if (fm==NULL)
 		return -ENOMEM;
 
-	kprintf("newfilemapping: setting filemapping attributes\n");
 	fm->vn = v;
 	fm->offset = 0;
 	fm->flags = flags;
@@ -75,9 +76,7 @@ newfilemapping(struct vnode *v, int flags)
 		/* fm->offset = eof; */
 	}
 
-	kprintf("newfilemapping: looking for free descriptor\n");
 	fd = findfreedescriptor();
-	kprintf("newfilemapping: setting sys_descript %d\n", fd);
 	lock_acquire(filetable_lock);
 	if (fd == array_getnum(filetable))
 	{
@@ -113,7 +112,6 @@ addprocfilemapping(int fd, pid_t pid)
 	}
 	*newind = fd;
 
-	kprintf("proc %d: filetable 0x%08x\n", pid, proc->filetable);
 	retfd = array_getnum(proc->filetable);
 	array_add(proc->filetable, newind);
 	lock_release(proctable_lock);
