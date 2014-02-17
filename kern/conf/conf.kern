@@ -392,6 +392,7 @@ file	  syscall/execv.c
 file	  syscall/fork.c
 file	  syscall/waitpid.c
 file	  syscall/open.c
+file	  syscall/write.c
 
 #
 # process api
