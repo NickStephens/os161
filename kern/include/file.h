@@ -60,6 +60,11 @@ setfiletable(pid_t pid, struct array *ft);
 struct array *
 copyfiletable(pid_t);
 
+/* increment the reference count of all sys_filemappings refered to 
+ * by a process's filetable. To be called by copyfiletable. */
+void
+incrementrefs(struct array *ft);
+
 /* finds the first free file descriptor in the filetable, if there
  * are no free slots, return -1 */
 /* since this is inefficient as a loop, it may be better to just define

@@ -219,7 +219,30 @@ copyfiletable(pid_t pid)
 	}
 	lock_release(proctable_lock);
 
+	incrementrefs(newft);
 	return newft;
+}
+
+void
+incrementrefs(struct array *ft)
+{
+	int i, num;
+	proc_filemapping *pmpg;
+	struct sys_filemapping *smpg;
+
+	lock_acquire(filetable_lock);
+
+	num = array_getnum(ft);
+	for(i=0; i<num; i++)
+	{
+		pmpg = (proc_filemapping *) array_getguy(ft, i);
+		smpg = (struct sys_filemapping *) array_getguy(filetable, *pmpg);
+		assert(smpg!=NULL); /* no processes should ever hold a stale ref */
+		smpg->refcnt++;
+	}
+
+	lock_release(filetable_lock);
+
 }
 
 int
