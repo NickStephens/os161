@@ -16,6 +16,8 @@
 #include <vm.h>
 #include <syscall.h>
 #include <version.h>
+#include <proc.h>
+#include <file.h>
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -78,6 +80,7 @@ boot(void)
 	vm_bootstrap();
 	kprintf_bootstrap();
 	proc_bootstrap();
+	file_bootstrap();
 
 	/* Default bootfs - but ignore failure, in case emu0 doesn't exist */
 	vfs_setbootfs("emu0");
