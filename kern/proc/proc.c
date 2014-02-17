@@ -52,7 +52,6 @@ getcurprocess()
 	struct process *proc;
 
 	curpid = curthread->t_pid;
-	curpid -= 1;
 
 	proc = getprocess(curpid);
 	if (proc==NULL)	
