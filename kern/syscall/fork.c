@@ -63,15 +63,7 @@ sys_fork(struct trapframe *tf)
 
 	/* copy parent's filetable */
 	newft = copyfiletable(curthread->t_pid);
-	/*
-	if (newft==NULL)
-	{
-		kfree(childtrapframe);
-		kfree(entryargs);
-		return -ENOMEM; // really no such process, but this shouldn't happen 
-	}
-	*/
-	if (setfiletable(curthread->t_pid, newft)<0)
+	if (setfiletable(childpid, newft)<0)
 	{
 		kfree(childtrapframe);
 		kfree(entryargs);
