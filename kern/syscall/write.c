@@ -43,5 +43,5 @@ sys_write(int fd, const void *buf, size_t nbytes)
 
 	mpg->offset += nbytes;
 
-	return result;
+	return nbytes;
 }
