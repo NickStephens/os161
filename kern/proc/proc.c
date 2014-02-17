@@ -4,6 +4,7 @@
 #include <synch.h>
 #include <thread.h>
 #include <curthread.h>
+#include <file.h>
 #include <proc.h>
 
 void
