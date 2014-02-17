@@ -393,6 +393,7 @@ file	  syscall/fork.c
 file	  syscall/waitpid.c
 file	  syscall/open.c
 file	  syscall/write.c
+file	  syscall/read.c
 
 #
 # process api
