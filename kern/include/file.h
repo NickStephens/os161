@@ -34,6 +34,10 @@ typedef int proc_filemapping;
 void
 file_bootstrap(void);
 
+/* dump filetable contents of the current process */
+void
+filetable_dump(void);
+
 /* resolves a per-process filetable mapping to a sys_filemapping */
 struct sys_filemapping *
 resolvefd(int fd);
