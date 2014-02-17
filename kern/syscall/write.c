@@ -14,9 +14,7 @@ sys_write(int fd, const void *buf, size_t nbytes)
 	char *kbuf;
 	int result;
 
-	kprintf("write: resolving %d\n", fd);
 	mpg = resolvefd(fd);
-	kprintf("write: resolved to 0x%08x\n", mpg);
 	if (mpg==NULL)
 		return -EBADF;
 
@@ -30,7 +28,6 @@ sys_write(int fd, const void *buf, size_t nbytes)
 		return -ENOMEM;
 
 
-	kprintf("write: copying in %d bytes\n", nbytes);
 	result = copyin(buf, kbuf, nbytes);
 	if (result)
 	{
@@ -41,9 +38,10 @@ sys_write(int fd, const void *buf, size_t nbytes)
 	mk_kuio(&ku, kbuf, nbytes, mpg->offset, UIO_WRITE);
 	result = VOP_WRITE(mpg->vn, &ku);
 
-	if (result>0)
-		mpg->offset += result;
-	else
+	if (result)
 		return -result;
+
+	mpg->offset += nbytes;
+
 	return result;
 }
