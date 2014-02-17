@@ -391,6 +391,7 @@ file	  syscall/exit.c
 file	  syscall/execv.c
 file	  syscall/fork.c
 file	  syscall/waitpid.c
+file	  syscall/open.c
 
 #
 # process api
