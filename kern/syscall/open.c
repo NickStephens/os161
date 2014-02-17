@@ -16,13 +16,10 @@ sys_open(char *path, int flags)
 	if (result)
 		return -result;
 
-	kprintf("open: newfilemapping\n");
 	result = newfilemapping(v, flags);  
 	if (result < 0)
 		return result;
 
-	kprintf("getting current process\n");
-	kprintf("adding a process filemapping\n");
 	fd = addprocfilemapping(result, curthread->t_pid);
 
 	return fd;
