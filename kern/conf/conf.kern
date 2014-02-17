@@ -394,6 +394,7 @@ file	  syscall/waitpid.c
 file	  syscall/open.c
 file	  syscall/write.c
 file	  syscall/read.c
+file	  syscall/close.c
 
 #
 # process api
