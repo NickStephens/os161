@@ -19,7 +19,7 @@ sys_read(int fd, void *buf, size_t buflen)
 		return -EBADF;
 
 	/* check flags */
-	if (!((mpg->flags & O_RDONLY) || (mpg->flags & O_RDWR)))
+	if (!((mpg->flags==O_RDONLY) || (mpg->flags & O_RDWR)))
 		return -1;
 
 	kbuf = kmalloc(buflen);
