@@ -17,6 +17,7 @@
 #include <test.h>
 #include <vm.h>
 #include <proc.h>
+#include <file.h>
 #include "opt-synchprobs.h"
 #include "opt-sfs.h"
 #include "opt-net.h"
@@ -59,6 +60,7 @@ cmd_progthread(void *ptr, unsigned long nargs)
 {
 	char **args = ptr;
 	char progname[128];
+	struct array *newft;
 	pid_t newpid;
 	int result;
 
@@ -78,6 +80,10 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	if (newpid < 0)
 		panic("cmd_progthread: allocating new process %s", strerror(newpid));
 	curthread->t_pid = newpid;
+
+	/* set up filetable */
+	newft = array_create();
+	setfiletable(newpid, newft);
 
 	result = runprogram(progname);
 	if (result) {
