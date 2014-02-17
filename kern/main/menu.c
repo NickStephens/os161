@@ -82,7 +82,10 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	curthread->t_pid = newpid;
 
 	/* set up filetable */
-	newft = array_create();
+	newft = copyfiletable(1);
+	if (newft==NULL)
+		panic("cmd_progthread: initializing filetable for child\n");
+
 	setfiletable(newpid, newft);
 
 	result = runprogram(progname);
