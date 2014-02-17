@@ -14,6 +14,10 @@
 void
 file_bootstrap()
 {
+	struct array *ft;
+	struct process *proc;
+	int result;
+
 	filetable = array_create();
 	if (filetable==NULL)
 		panic("file_bootstrap: could not allocate filetable\n");
@@ -23,7 +27,40 @@ file_bootstrap()
 		panic("file_bootstrap: could not allocate filetable_lock\n");
 
 	/* TODO add filedescriptors for console to table */
-	/* TODO set up filetable for origin thread */
+	
+	/* set up filetable for origin thread */
+	proc = getcurprocess();
+	ft = array_create();
+	if (ft==NULL)
+		panic("file_bootstrap: could not allocate origin thread's filetable\n");
+
+	setfiletable(curthread->t_pid, ft);
+
+	result = sys_open("con:", O_RDWR); // stdin
+	addprocfilemapping(result, curthread->t_pid); // stdout
+	addprocfilemapping(result, curthread->t_pid); // stderr
+}
+
+void
+filetable_dump(void)
+{
+	struct process *proc;
+	struct array *ft;
+	int i, num;
+	proc_filemapping *mpg;
+
+	proc = getcurprocess();
+
+	lock_acquire(proctable_lock);
+	ft = proc->filetable;
+
+	num = array_getnum(ft);
+	for (i=0; i<num; i++)
+	{
+		mpg = (proc_filemapping *) array_getguy(ft, i);
+		kprintf("%d -> %d\n", i, *mpg);
+	}
+	lock_release(proctable_lock);
 }
 
 struct sys_filemapping *
