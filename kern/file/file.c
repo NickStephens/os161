@@ -21,6 +21,7 @@ file_bootstrap()
 		panic("file_bootstrap: could not allocate filetable_lock\n");
 
 	/* TODO add filedescriptors for console to table */
+	/* TODO set up filetable for origin thread */
 }
 
 struct sys_filemapping *
@@ -32,7 +33,15 @@ resolvefd(int fd)
 
 	proc = getcurprocess();
 
+	lock_acquire(proctable_lock);
+	if (fd >= array_getnum(proc->filetable))
+	{
+		lock_release(proctable_lock);
+		return NULL;
+	}
+
 	sys_index = *((int *) array_getguy(proc->filetable, fd));
+	lock_release(proctable_lock);
 
 	lock_acquire(filetable_lock);
 	if (sys_index >= array_getnum(filetable))
@@ -54,6 +63,7 @@ newfilemapping(struct vnode *v, int flags)
 	if (fm==NULL)
 		return -ENOMEM;
 
+	kprintf("newfilemapping: setting filemapping attributes\n");
 	fm->vn = v;
 	fm->offset = 0;
 	fm->flags = flags;
@@ -65,11 +75,12 @@ newfilemapping(struct vnode *v, int flags)
 		/* fm->offset = eof; */
 	}
 
+	kprintf("newfilemapping: looking for free descriptor\n");
 	fd = findfreedescriptor();
+	kprintf("newfilemapping: setting sys_descript %d\n", fd);
 	lock_acquire(filetable_lock);
-	if (fd < 0)
+	if (fd == array_getnum(filetable))
 	{
-		fd = array_getnum(filetable);
 		array_add(filetable, fm);
 	} else {
 		array_setguy(filetable, fd, fm);
@@ -77,6 +88,103 @@ newfilemapping(struct vnode *v, int flags)
 	lock_release(filetable_lock);
 
 	return fd;
+}
+
+int
+addprocfilemapping(int fd, pid_t pid)
+{
+	int retfd;
+	struct process *proc;
+	proc_filemapping *newind;
+	
+	proc = getprocess(pid);
+	lock_acquire(proctable_lock);
+	if (proc==NULL)
+	{
+		lock_release(proctable_lock);
+		return -1;
+	}
+	
+	newind = (proc_filemapping *) kmalloc(sizeof(proc_filemapping));
+	if (newind==NULL)
+	{
+		lock_release(proctable_lock);
+		return -ENOMEM;
+	}
+	*newind = fd;
+
+	kprintf("proc %d: filetable 0x%08x\n", pid, proc->filetable);
+	retfd = array_getnum(proc->filetable);
+	array_add(proc->filetable, newind);
+	lock_release(proctable_lock);
+
+	return retfd;
+}
+
+int
+setfiletable(pid_t pid, struct array *ft)
+{
+	struct process *proc;
+
+	proc = getprocess(pid);
+	if (proc==NULL)
+		return -1;
+
+	lock_acquire(proctable_lock);
+	proc->filetable = ft;
+	lock_release(proctable_lock);
+
+	return 0;
+}
+
+struct array *
+copyfiletable(pid_t pid)
+{
+	struct process *proc;
+	struct array *ft;
+	struct array *newft;
+	proc_filemapping *ind;
+	proc_filemapping *newind;
+	int i, num;
+
+	proc = getprocess(pid);
+	if (proc==NULL)
+		return NULL;
+	
+	lock_acquire(proctable_lock);
+	ft = proc->filetable;
+
+	if (ft==NULL)
+	{
+		lock_release(proctable_lock);
+		return NULL;
+	}
+
+	newft = array_create();	
+	if (newft==NULL)
+	{
+		lock_release(proctable_lock);
+		return NULL;
+	}
+
+	num = array_getnum(ft);
+	for (i=0; i<num; i++)
+	{
+		ind = (proc_filemapping *) array_getguy(ft, i);
+		if (ind==NULL)
+		{
+			newind = NULL;
+		}
+		else
+		{
+			newind = (proc_filemapping *) kmalloc(sizeof(proc_filemapping));
+			*newind = *ind;
+		}
+		array_add(newft, newind);
+	}
+	lock_release(proctable_lock);
+
+	return newft;
 }
 
 int
@@ -92,7 +200,6 @@ findfreedescriptor()
 			break;
 	}
 
-	if (i == count)
-		return -1;
+	lock_release(filetable_lock);
 	return i;
 }

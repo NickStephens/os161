@@ -43,8 +43,18 @@ resolvefd(int fd);
 int
 newfilemapping(struct vnode *v, int flags); 
 
+/* adds the integer fd to the filetable of the process pid, returns a negative number
+ * on error */
+int 
+addprocfilemapping(int fd, pid_t pid);
+
+/* set filetable for a process. returns 0 on success. */
+int
+setfiletable(pid_t pid, struct array *ft);
+
+/* given a process id copy a filetable */
 struct array *
-copyfiletable(struct array *);
+copyfiletable(pid_t);
 
 /* finds the first free file descriptor in the filetable, if there
  * are no free slots, return -1 */
