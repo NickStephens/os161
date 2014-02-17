@@ -23,6 +23,7 @@ sys_fork(struct trapframe *tf)
 	struct thread *retthread;
 	struct addrspace *retaddrspace;
 	struct trapframe *childtrapframe;
+	struct array *newft;
 	unsigned long *entryargs;	
 	pid_t childpid;
 	int result;
@@ -58,6 +59,24 @@ sys_fork(struct trapframe *tf)
 		kfree(childtrapframe);
 		kfree(entryargs);
 		return (int) childpid;
+	}
+
+	/* copy parent's filetable */
+	newft = copyfiletable(curthread->t_pid);
+	/*
+	if (newft==NULL)
+	{
+		kfree(childtrapframe);
+		kfree(entryargs);
+		return -ENOMEM; // really no such process, but this shouldn't happen 
+	}
+	*/
+	if (setfiletable(curthread->t_pid, newft)<0)
+	{
+		kfree(childtrapframe);
+		kfree(entryargs);
+		array_destroy(newft);
+		return -1;	
 	}
 
 	entryargs[0] = childtrapframe; entryargs[1] = retaddrspace; entryargs[2] = childpid;
