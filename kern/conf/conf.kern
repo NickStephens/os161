@@ -395,6 +395,7 @@ file	  syscall/open.c
 file	  syscall/write.c
 file	  syscall/read.c
 file	  syscall/close.c
+file	  syscall/fstat.c
 
 #
 # process api

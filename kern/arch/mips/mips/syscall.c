@@ -138,6 +138,10 @@ mips_syscall(struct trapframe *tf)
 		else
 			err = 0;
 		break;
+
+	    case SYS_fstat:
+		err = sys_fstat((int) tf->tf_a0, (struct stat *) tf->tf_a1);
+		break;
 	
 	    default:
 		kprintf("Unknown syscall %d\n", callno);
