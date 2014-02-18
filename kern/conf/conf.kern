@@ -396,6 +396,7 @@ file	  syscall/write.c
 file	  syscall/read.c
 file	  syscall/close.c
 file	  syscall/fstat.c
+file	  syscall/lseek.c
 
 #
 # process api
