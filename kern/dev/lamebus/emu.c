@@ -381,9 +381,11 @@ emufs_open(struct vnode *v, int openflags)
 	 * to check that either.
 	 */
 
+	/* 
 	if (openflags & O_APPEND) {
 		return EUNIMP;
 	}
+	*/
 
 	(void)v;
 
