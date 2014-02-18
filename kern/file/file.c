@@ -2,6 +2,7 @@
 #include <lib.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
+#include <kern/stat.h>
 #include <array.h>
 #include <synch.h>
 #include <vnode.h>
@@ -73,7 +74,7 @@ resolvefd(int fd)
 	proc = getcurprocess();
 
 	lock_acquire(proctable_lock);
-	if (fd >= array_getnum(proc->filetable))
+	if ((fd >= array_getnum(proc->filetable)) || (fd < 0))
 	{
 		lock_release(proctable_lock);
 		return NULL;
@@ -97,6 +98,8 @@ newfilemapping(struct vnode *v, int flags)
 {
 	int fd;
 	struct sys_filemapping *fm;
+	struct stat st;
+	int result;
 
 	fm = (struct sys_filemapping *) kmalloc(sizeof(struct sys_filemapping));
 	if (fm==NULL)
@@ -109,8 +112,13 @@ newfilemapping(struct vnode *v, int flags)
 
 	if (flags & O_APPEND)
 	{
-		/* calculate file length with stat */
-		/* fm->offset = eof; */
+		result = VOP_STAT(v, &st);
+		if (result)
+		{
+			kfree(fm);
+			return -result;
+		}
+		fm->offset = st.st_size;
 	}
 
 	fd = findfreedescriptor();
