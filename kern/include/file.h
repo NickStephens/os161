@@ -36,7 +36,7 @@ file_bootstrap(void);
 
 /* dump filetable contents of the current process */
 void
-filetable_dump(void);
+filetable_dump(struct array *ft);
 
 /* resolves a per-process filetable mapping to a sys_filemapping */
 struct sys_filemapping *

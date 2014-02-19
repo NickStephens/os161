@@ -43,17 +43,11 @@ file_bootstrap()
 }
 
 void
-filetable_dump(void)
+filetable_dump(struct array *ft)
 {
 	struct process *proc;
-	struct array *ft;
 	int i, num;
 	proc_filemapping *mpg;
-
-	proc = getcurprocess();
-
-	lock_acquire(proctable_lock);
-	ft = proc->filetable;
 
 	num = array_getnum(ft);
 	for (i=0; i<num; i++)
@@ -61,7 +55,6 @@ filetable_dump(void)
 		mpg = (proc_filemapping *) array_getguy(ft, i);
 		kprintf("%d -> %d\n", i, *mpg);
 	}
-	lock_release(proctable_lock);
 }
 
 struct sys_filemapping *
