@@ -79,6 +79,8 @@ resolvefd(int fd)
 	lock_acquire(filetable_lock);
 	if (sys_index >= array_getnum(filetable))
 		panic("resolvefd: process contains stale or invalid sys_fd\n");
+	if (sys_index < 0)
+		panic("resolvefd: process contains negative sys_fd\n");
 
 	fm = (struct sys_filemapping *) array_getguy(filetable, sys_index);
 	lock_release(filetable_lock);
