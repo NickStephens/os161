@@ -23,7 +23,7 @@ sys_waitpid(pid_t pid, int *status, int options)
 	/* error checking */
 
 	/* status must point to userland */
-	if (status > USERTOP)
+	if (status >= USERTOP)
 	{
 		return (pid_t) -EFAULT;	
 	}
