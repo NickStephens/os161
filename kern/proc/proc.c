@@ -32,11 +32,13 @@ getprocess(pid_t pid)
 	struct process *proc;
 
 	lock_acquire(proctable_lock);
-	if (pid > array_getnum(proctable))
+
+	pid -= 1;
+
+	if ((pid > array_getnum(proctable)) || (pid < 0))
 		proc = NULL;
 	else 
 	{
-		pid -= 1;
 		proc = (struct process *) array_getguy(proctable, (int) pid);
 	}
 
