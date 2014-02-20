@@ -146,7 +146,9 @@ sys_execv(const char *path, char *argv[])
 	kfree_all(savedargv);
 	kfree(savedargv);
 	kfree(newargv);
-	kfree(kpath);
+
+	/* change name of current thread */
+	curthread->t_name = kpath;
 
 	/* debug */
 	/*
