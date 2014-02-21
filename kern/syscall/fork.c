@@ -28,10 +28,6 @@ sys_fork(struct trapframe *tf)
 	pid_t childpid;
 	int result;
 
-	retaddrspace = as_create();
-	if (retaddrspace==NULL)
-		return -ENOMEM;
-
 	result = as_copy(curthread->t_vmspace, &retaddrspace);
 	if (result)
 	{
