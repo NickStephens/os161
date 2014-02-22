@@ -1,3 +1,6 @@
+#ifndef PAGETABLE_H_
+#define PAGETABLE_H_
+
 #include <types.h>
 #include <lib.h>
 #include <synch.h>
@@ -77,3 +80,4 @@ getpte(vaddr_t page);
  * referencing the same virtual address */
 int
 hash(vaddr_t page);
+#endif
