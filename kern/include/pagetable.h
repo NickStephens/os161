@@ -12,6 +12,7 @@
 #define X_B	0x04
 #define SUPER_B 0x01
 
+#define FRAME( x ) (bframe + (x * PAGE_SIZE))
 #define PTE_VALID( x ) (x.control & VALID_B)
 
 /* The attributes of the PTE (Page Table Entry) assume 
@@ -21,6 +22,12 @@
 struct pte  *pagetable;
 struct lock *pagetable_lock;
 u_int32_t    pagetable_size;
+paddr_t	     bframe;
+
+/* boolean used to determine whether to use ram_stealmem
+ * or pagetable function */
+int pagetable_initialized = 0;
+
 
 /* an inverted pagetable entry 
  * page    - the virtual address holding the frame
@@ -49,11 +56,11 @@ pagetable_bootstrap(void);
 
 /* add a page belonging to the current process with the passed
  * permissions */
-int
+void
 addpage(vaddr_t page, int read, int write, int execute);
 
 /* invalidate the passed page belonging to the current process */
-int
+void
 invalidatepage(vaddr_t page);
 
 /* returns a pointer to a pte belonging to the current process. 
