@@ -77,6 +77,7 @@ boot(void)
 	thread_bootstrap();
 	vfs_bootstrap();
 	dev_bootstrap();
+	pagetable_bootstrap();
 	vm_bootstrap();
 	kprintf_bootstrap();
 	proc_bootstrap();
