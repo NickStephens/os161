@@ -165,6 +165,29 @@ invalidatepage(vaddr_t page)
 	lock_release(pagetable_lock);
 }
 
+struct pte *
+getpte(vaddr_t page)
+{
+	int index;
+	struct pte *cur;
+
+	index = hash(page);
+	cur = &pagetable[index];
+
+	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
+	{
+		if (cur->next!=-1)
+			cur = &pagetable[cur->next];
+		else
+		{
+			cur = NULL;
+			break;
+		}
+	}
+	
+	return cur;
+}
+
 /* a stupid hash function for the inverted page table */
 /* for the most part a lot of these values are somewhat arbitrary until
  * I take the time to research what makes a good hash function. Generally
