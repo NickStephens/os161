@@ -10,8 +10,9 @@
 #define R_B	0x10
 #define W_B	0x08
 #define X_B	0x04
+#define SUPER_B 0x01
 
-#define PTE_VALID( x ) (x->cntrl & VALID_B)
+#define PTE_VALID( x ) (x.control & VALID_B)
 
 /* The attributes of the PTE (Page Table Entry) assume 
  * an inverted pagetable */
@@ -19,17 +20,18 @@
 /* the pagetable is an array of pagetable entries */
 struct pte  *pagetable;
 struct lock *pagetable_lock;
+u_int32_t    pagetable_size;
 
 /* an inverted pagetable entry 
- * page  - the virtual address holding the frame
- * owner - a process id representing an owner of the frame 
- * cntrl - control bits
- * 	.     .     .     .     .     .    . . 
- * 	^     ^     ^     ^	^     ^    ^ ^
- * 	|     |     |     |     |     |    | |
- *    valid  ref  write   r     w     x    reserved 
+ * page    - the virtual address holding the frame
+ * owner   - a process id representing an owner of the frame 
+ * control - control bits
+ * 	.     .     .     .     .     .     .      . 
+ * 	^     ^     ^     ^	^     ^     ^      ^
+ * 	|     |     |     |     |     |     |      |
+ *    valid  ref  write   r     w     x  reserved supervisor
  *
- * next  - an index into the pagetable containing the next ptr,
+ * next    - an index into the pagetable containing the next ptr,
  * 	   negative one when none exists. 
  */
 
@@ -37,7 +39,7 @@ struct pte
 {
 	vaddr_t   page;
 	pid_t     owner;
-	u_int8_t cntrl;
+	u_int8_t  control;
 	int16_t   next;
 };
 
