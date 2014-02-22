@@ -86,5 +86,5 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 {
 	*lo = firstpaddr;
 	*hi = lastpaddr;
-	firstpaddr = lastpaddr = 0;
+	//firstpaddr = lastpaddr = 0;
 }
