@@ -1,7 +1,6 @@
 #include <types.h>
 #include <lib.h>
 #include <synch.h>
-#include <array.h>
 
 /* pagetable API */
 
