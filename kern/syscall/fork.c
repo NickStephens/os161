@@ -7,16 +7,6 @@
 #include <machine/trapframe.h>
 #include <proc.h>
 
-void
-addrspace_dump(struct addrspace *as)
-{
-	kprintf("as_vbase1: 0x%08x\n", as->as_vbase1);
-	kprintf("as_pbase1: 0x%08x\n", as->as_pbase1);
-	kprintf("as_vbase2: 0x%08x\n", as->as_vbase2);
-	kprintf("as_pbase2: 0x%08x\n", as->as_pbase2);
-
-}
-
 int
 sys_fork(struct trapframe *tf)
 {

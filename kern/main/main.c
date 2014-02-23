@@ -18,6 +18,7 @@
 #include <version.h>
 #include <proc.h>
 #include <file.h>
+#include <pagetable.h>
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -78,7 +79,6 @@ boot(void)
 	vfs_bootstrap();
 	dev_bootstrap();
 	pagetable_bootstrap();
-	vm_bootstrap();
 	kprintf_bootstrap();
 	proc_bootstrap();
 	file_bootstrap();

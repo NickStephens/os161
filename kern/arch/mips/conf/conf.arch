@@ -19,7 +19,7 @@ file        arch/mips/mips/tlb_mips1.S		# TLB handling routines
 
 file        ../lib/libc/mips-setjmp.S		# setjmp/longjmp
 
-#file	    arch/mips/mips/vm.c			# my vm stuff
+file	    arch/mips/mips/vm.c			# my vm stuff
 
 #
 # This is included here rather than in conf.kern because

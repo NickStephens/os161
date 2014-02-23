@@ -29,7 +29,6 @@
  */
 #define assert(x) { \
     if (!(x)) { \
-	    buddylist_printstats(); \
             panic("Assertion failed: %s, at %s:%d (%s)\n", #x, \
                     __FILE__, __LINE__, __PRETTY_FUNCTION__); \
     } \

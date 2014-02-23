@@ -378,30 +378,6 @@ cmd_kheapstats(int nargs, char **args)
 	return 0;
 }
 
-static
-int
-cmd_tlbstats(int nargs, char **args)
-{
-	(void)nargs;
-	(void)args;
-
-	tlb_printstats();
-
-	return 0;
-}
-
-static
-int
-cmd_buddyliststats(int nargs, char **args)
-{
-	(void)nargs;
-	(void)args;
-
-	buddylist_printstats();
-
-	return 0;
-}
-
 ////////////////////////////////////////
 //
 // Menus.
@@ -565,8 +541,6 @@ static struct {
 
 	/* stats */
 	{ "kh",         cmd_kheapstats },
-	{ "bs",		cmd_buddyliststats },
-	{ "ts",		cmd_tlbstats },
 
 	/* base system tests */
 	{ "at",		arraytest },
