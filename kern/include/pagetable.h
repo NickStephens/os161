@@ -29,7 +29,7 @@ paddr_t	     bframe;
 
 /* boolean used to determine whether to use ram_stealmem
  * or pagetable function */
-int pagetable_initialized = 0;
+extern int pagetable_initialized;
 
 
 /* an inverted pagetable entry 
@@ -71,6 +71,11 @@ invalidatepage(vaddr_t page);
 struct pte *
 getpte(vaddr_t page);
 
+/* returns the index of the pagetable given a virtual address. 
+ * Returns -1 if no such page exists. */
+int
+getindex(vaddr_t page);
+
 /* the inverted pagetable hash function. The result of this function
  * determines which index into the pagetable we place a given page.
  * the function takes both the virtual address representing the page
@@ -80,4 +85,7 @@ getpte(vaddr_t page);
  * referencing the same virtual address */
 int
 hash(vaddr_t page);
+
+void
+pagetable_dump(void);
 #endif

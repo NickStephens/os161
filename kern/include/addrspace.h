@@ -3,6 +3,7 @@
 
 #include <vm.h>
 #include "opt-dumbvm.h"
+#include <array.h>
 
 struct vnode;
 
@@ -25,7 +26,34 @@ struct addrspace {
 	paddr_t as_stackpbase;
 #else
 	/* Put stuff here for your VM system */
+	struct array *pages;
+
 #endif
+};
+
+/* per-process permission bits */
+#define P_R_B 0x80
+#define P_W_B 0x40
+#define P_X_B 0x20
+
+/* hardcoded stack limit */
+#define STACKSIZE 12
+
+/* A per-process page to be stored in the pages
+ * array in an address space:
+ *
+ * vaddr - the virtual address of the page
+ * perms - the permission bits of the page
+ *	.  .  .  .  .  .  .  . 
+ *	^  ^  ^  ^  ^  ^  ^  ^
+ *	|  |  |  |  |  |  |  | 
+ *	r  w  x  reserved .....
+ */
+
+struct page
+{
+	vaddr_t  vaddr;
+	u_int8_t perms;
 };
 
 /*
@@ -84,6 +112,9 @@ int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
  */
 
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
+
+void
+addrspace_dump(struct addrspace *as);
 
 
 #endif /* _ADDRSPACE_H_ */
