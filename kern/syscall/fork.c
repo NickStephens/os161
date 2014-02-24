@@ -18,12 +18,6 @@ sys_fork(struct trapframe *tf)
 	pid_t childpid;
 	int result;
 
-	result = as_copy(curthread->t_vmspace, &retaddrspace);
-	if (result)
-	{
-		return -result;
-	}
-
 	childtrapframe = (struct trapframe *) kmalloc(sizeof(struct trapframe));
 	if (childtrapframe==NULL)
 	{
@@ -55,6 +49,12 @@ sys_fork(struct trapframe *tf)
 		kfree(entryargs);
 		array_destroy(newft);
 		return -1;	
+	}
+
+	result = as_copy(curthread->t_vmspace, &retaddrspace, childpid);
+	if (result)
+	{
+		return -result;
 	}
 
 	entryargs[0] = childtrapframe; entryargs[1] = retaddrspace; entryargs[2] = childpid;
