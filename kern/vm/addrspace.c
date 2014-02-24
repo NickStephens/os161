@@ -69,16 +69,14 @@ as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 	struct addrspace *newas;
 	struct page *newpage, *page;
 	int i;
+	int nindex, oindex;
+	paddr_t nf, of;
 
 	newas = as_create();
 	if (newas==NULL) {
 		return ENOMEM;
 	}
 
-	/*
-	 * Write this.
-	 */
-	
 	for(i=0;i<array_getnum(old->pages);i++)
 	{
 		newpage = (struct page *) kmalloc(sizeof(struct page));
@@ -88,13 +86,27 @@ as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 		memcpy(newpage, page, sizeof(struct page));
 		array_add(newas->pages, newpage);
 
-		/* problem, adds pages under pid of parent */
-		addpage(newpage->vaddr,
-			pid, 
-			newpage->perms & P_R_B,
-			newpage->perms & P_W_B,
-			newpage->perms & P_X_B);
+		nindex = addpage(newpage->vaddr,
+				pid, 
+				newpage->perms & P_R_B,
+				newpage->perms & P_W_B,
+				newpage->perms & P_X_B);
+
+		oindex = getindex(newpage->vaddr);
+
+		nf = FRAME(nindex);
+		of = FRAME(oindex);
+
+		memmove((void *)PADDR_TO_KVADDR(nf),
+			(const void *)PADDR_TO_KVADDR(of),
+			PAGE_SIZE);
+
 	}
+
+	/* as_prepare_load - place new pages in frames */
+
+	/* memmove */
+	
 
 	*ret = newas;
 	return 0;
