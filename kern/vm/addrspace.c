@@ -1,14 +1,43 @@
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
+#include <array.h>
 #include <addrspace.h>
 #include <vm.h>
+#include <pagetable.h>
 
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
  * assignment, this file is not compiled or linked or in any way
  * used. The cheesy hack versions in dumbvm.c are used instead.
  */
+
+
+/* an addrspace will contain
+ * an array of vaddrs and the number of pages
+ * associated with each vaddr */
+
+/* A typical memory use case: (from execv)
+ * - a program starts up and calls as_create
+ * - as_create allocates an array for vaddrs
+ * - a program calls as_activate, this puts mappings
+ *   in the pagetable 
+ *   (when we get to vm we'll also have to make decisions
+ *   about how we swap out programs, in fact we might not
+ *   even put anything thing in the pagetable right away
+ *   we might just immediately go to disk)
+ * - a program calls as_define_stack, we assign a 
+ *   a random stack address and put the addr in our
+ *   address space array
+ */
+
+/* A typical memory use case: (from fork)
+ * - a program starts up and calls as_create
+ * - a program calls as_copy
+ *   this has to immediately read off all the 
+ *   vaddrs from the target address space, resolve 
+ *   those and do a memcpy, we should probably
+ *   write a nice pagetable function to handle all of this */
 
 struct addrspace *
 as_create(void)
@@ -21,6 +50,13 @@ as_create(void)
 	/*
 	 * Initialize as needed.
 	 */
+
+	as->pages = array_create();
+	if (as->pages==NULL)
+	{
+		kfree(as);
+		return NULL;
+	}
 
 	return as;
 }
@@ -39,12 +75,19 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	 * Write this.
 	 */
 
+	/* 
+	 * loop grabbing ptes 
+	 */
+
 	(void)old;
 	
 	*ret = newas;
 	return 0;
 }
-
+ 
+/* frees pages */
+/* hashes all pages belonging to process */
+/* calls md_freetld */
 void
 as_destroy(struct addrspace *as)
 {
@@ -61,6 +104,8 @@ as_activate(struct addrspace *as)
 	/*
 	 * Write this.
 	 */
+
+	/* write out to tlb */
 
 	(void)as;  // suppress warning until code gets written
 }
@@ -79,27 +124,55 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable)
 {
-	/*
-	 * Write this.
-	 */
+	struct page *p;
+	size_t curpage;
+	size_t npages;
 
-	(void)as;
-	(void)vaddr;
-	(void)sz;
-	(void)readable;
-	(void)writeable;
-	(void)executable;
-	return EUNIMP;
+	/* make entries for each page */
+	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
+	vaddr &= PAGE_FRAME;
+
+	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;
+
+	npages = sz / PAGE_SIZE;
+
+	for (curpage=0;curpage<npages;curpage++)
+	{
+		p = (struct page *) kmalloc(sizeof(struct page));
+		if (p==NULL)
+			return ENOMEM;
+		p->vaddr = vaddr + curpage * PAGE_SIZE;
+		if (readable)
+			p->perms |= P_R_B;
+		if (writeable)
+			p->perms |= P_W_B;
+		if (executable)
+			p->perms |= P_X_B;
+		array_add(as->pages, p);
+	}
+
+	return 0;
 }
 
+/* place all entries into the pagetable */
 int
 as_prepare_load(struct addrspace *as)
 {
-	/*
-	 * Write this.
-	 */
+	struct page *p;
+	int i;
+	int num = array_getnum(as->pages);
 
-	(void)as;
+
+	for (i=0;i<num;i++)
+	{
+		p = (struct page *) array_getguy(as->pages, i);
+		addpage(p->vaddr, 
+			p->perms & P_R_B,
+			p->perms & P_W_B,
+			p->perms & P_X_B);
+	}
+
+
 	return 0;
 }
 
@@ -110,6 +183,8 @@ as_complete_load(struct addrspace *as)
 	 * Write this.
 	 */
 
+	/* Load into page table */
+
 	(void)as;
 	return 0;
 }
@@ -117,15 +192,51 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
+	struct page *p;
+	size_t npages;
+	size_t curpage;
+	vaddr_t stacktop;
 
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
+
+	npages = (size_t) STACKSIZE;
+	stacktop = *stackptr - PAGE_SIZE * npages;
+
+	for(curpage=0;curpage<npages;curpage++)
+	{
+		p = (struct page *) kmalloc(sizeof(struct page));
+		if (p==NULL)
+			return ENOMEM;
+		p->vaddr = stacktop + curpage * PAGE_SIZE;
+		p->perms = P_R_B | P_W_B;
+		array_add(as, p);
+
+		addpage(p->vaddr, p->perms & P_R_B, 
+			p->perms & P_W_B, p->perms & P_X_B);
+	}
+
+	pagetable_dump();
 	
 	return 0;
 }
 
+void
+addrspace_dump(struct addrspace *as)
+{
+	struct page *p;
+	int num;
+	int i;
+
+	num = array_getnum(as->pages);
+
+	kprintf("+-ADDRSPACE------+\n");
+	for(i=0;i<num;i++)
+	{
+		p = (struct page *) array_getguy(as->pages, i);
+		kprintf("| %08x | %c%c%c |\n", p->vaddr,
+			p->perms & P_R_B ? 'r' : '-', 
+			p->perms & P_W_B ? 'w' : '-',
+			p->perms & P_X_B ? 'x' : '-');
+	}
+}
