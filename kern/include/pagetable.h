@@ -58,8 +58,8 @@ void
 pagetable_bootstrap(void);
 
 /* add a page belonging to the to process pid with the passed
- * permissions */
-void
+ * permissions, returns the pagetable index of the new page */
+int
 addpage(vaddr_t page, pid_t pid, int read, int write, int execute);
 
 /* invalidate the passed page belonging to the current process */

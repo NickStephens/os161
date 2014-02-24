@@ -54,7 +54,10 @@ pagetable_bootstrap(void)
 
 	/* invalidate all the pagetable entries */
 	for(i=0;((u_int32_t) i)<pagetable_size;i++)
+	{
 		pagetable[i].control = 0;
+		pagetable[i].next = -1;
+	}
 
 	pagetable_lock = lock_create("pagetable_lock");
 	if (pagetable_lock==NULL)
@@ -114,7 +117,7 @@ free_kpages(vaddr_t page)
 		invalidatepage(page);
 }
 
-void
+int
 addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 {
 	int index; 
@@ -129,12 +132,15 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	/* XXX possible this loops forever */
 	while (cur->control & VALID_B)
 	{
-		kprintf("page: %08x\n", page);
+		kprintf("page: %08x, pid: %08x\n", page, pid);
 		kprintf("addpage: encountered valid page index %d\n", index);
 		kprintf("nextpage.. %d\n", cur->next);
 		pre = cur;
 		if (cur->next==-1)
+		{
+			index += 2;
 			index = (index*index) % pagetable_size;
+		}
 		else
 			index = cur->next;
 		cur = &pagetable[index];
@@ -158,6 +164,7 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	cur->next = -1;
 
 	lock_release(pagetable_lock);
+	return index;
 }
 
 /* invalidates the page pointed to by page. Resolves the index to invalidate 
