@@ -106,6 +106,10 @@ as_activate(struct addrspace *as)
 	 */
 
 	/* write out to tlb */
+	/* make sure tlblo contains the current pid 
+	 * within the asid field */
+
+	md_cacheclear();
 
 	(void)as;  // suppress warning until code gets written
 }
@@ -210,14 +214,12 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 			return ENOMEM;
 		p->vaddr = stacktop + curpage * PAGE_SIZE;
 		p->perms = P_R_B | P_W_B;
-		array_add(as, p);
+		array_add(as->pages, p);
 
 		addpage(p->vaddr, p->perms & P_R_B, 
 			p->perms & P_W_B, p->perms & P_X_B);
 	}
 
-	pagetable_dump();
-	
 	return 0;
 }
 

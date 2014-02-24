@@ -8,17 +8,76 @@
 #include <vm.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
+#include <pagetable.h>
 
 /*
  * Machine dependent memory stuff. Mainly vm_fault.
  */
 
 
-/* don't do this for now */
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
+	struct pte *p;
+	u_int32_t ehi, elo;
+	int index;
+	int spl;
+	int i;
+	paddr_t paddr;
+
+	spl = splhigh();
+
+	faultaddress &= PAGE_FRAME;
+	p = getpte(faultaddress);
+	if (p==NULL)
+	{
+		splx(spl);
+		return EFAULT;
+	}
+
+	index = getindex(faultaddress);
+
+	for(i=0;i<NUM_TLB;i++)
+	{
+		TLB_Read(&ehi, &elo, i);
+		if (elo & TLBLO_VALID)
+			continue;
+
+		elo = paddr | TLBLO_VALID;
+
+		paddr = FRAME(index);
+
+		elo = paddr | TLBLO_VALID | TLBLO_DIRTY;
+		/*
+		if (p->control & W_B)
+			elo |= TLBLO_DIRTY;
+			*/
+
+		ehi = faultaddress;	
+
+		// kprintf("curthread->pid %08x\n\
+			 curthread->pid << 6 %08x\n", curthread->t_pid,
+		//		 curthread->t_pid << 6);
+		// ehi |= curthread->t_pid << 6;
+		TLB_Write(ehi, elo, i);
+		splx(spl);
+		return 0;
+	}
+	
+	splx(spl);
 	return EFAULT;
+}
+
+/* clears the machine-dependent TLB */
+md_cacheclear()
+{
+	int i;
+
+	for(i=0;i<NUM_TLB;i++)
+	{
+		TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+	}
+
 }
 
 /*
