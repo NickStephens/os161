@@ -378,6 +378,18 @@ cmd_kheapstats(int nargs, char **args)
 	return 0;
 }
 
+static
+int
+cmd_pagestats(int nargs, char **args)
+{
+	(void)nargs;
+	(void)args;
+
+	pagetable_dump();
+
+	return 0;
+}
+
 ////////////////////////////////////////
 //
 // Menus.
@@ -484,8 +496,7 @@ static const char *mainmenu[] = {
 	"[1b] Stoplight                      ",
 #endif
 	"[kh] Kernel heap stats              ",
-	"[bs] Buddylist stats		     ",
-	"[ts] TLB stats			     ",
+	"[ps] Pagetable stats                ",
 	"[q] Quit and shut down              ",
 	NULL
 };
@@ -541,6 +552,7 @@ static struct {
 
 	/* stats */
 	{ "kh",         cmd_kheapstats },
+	{ "ps",		cmd_pagestats },
 
 	/* base system tests */
 	{ "at",		arraytest },
