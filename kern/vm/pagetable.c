@@ -95,8 +95,8 @@ alloc_kpages(int npages)
 				}
 				if (j==npages)
 				{
-					pagetable[i].control = VALID_B | SUPER_B;
 					free = FRAME(i);
+					pagetable[i].control = VALID_B | SUPER_B;
 					break;
 				}
 			}
@@ -116,7 +116,10 @@ void
 free_kpages(vaddr_t page)
 {
 	if (pagetable_initialized)
-		invalidatepage(page);
+	{
+		pagetable[INDEX(KVADDR_TO_PADDR(page))].control &= ~VALID_B;
+		//invalidatepage(page);
+	}
 }
 
 int
@@ -176,8 +179,11 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 void
 invalidatepage(vaddr_t page)
 {
+	int index;
+
+	index = getindex(page);
 	lock_acquire(pagetable_lock);
-	pagetable[hash(page, curthread->t_pid)].control &= ~VALID_B;
+	pagetable[index].control &= ~VALID_B;
 	lock_release(pagetable_lock);
 }
 
@@ -200,8 +206,8 @@ getindex(vaddr_t page)
 	{
 		if (cur->next!=-1)
 		{
-			cur = &pagetable[cur->next];
 			index = cur->next;
+			cur = &pagetable[cur->next];
 		}
 		else
 		{

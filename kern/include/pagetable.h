@@ -16,6 +16,7 @@
 #define SUPER_B 0x01
 
 #define FRAME( x ) (bframe + (x * PAGE_SIZE))
+#define INDEX( x ) ((x - bframe) / PAGE_SIZE)
 #define PTE_VALID( x ) (x.control & VALID_B)
 
 /* The attributes of the PTE (Page Table Entry) assume 
