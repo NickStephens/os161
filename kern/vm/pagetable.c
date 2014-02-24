@@ -173,24 +173,7 @@ invalidatepage(vaddr_t page)
 struct pte *
 getpte(vaddr_t page)
 {
-	int index;
-	struct pte *cur;
-
-	index = hash(page, curthread->t_pid);
-	cur = &pagetable[index];
-
-	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
-	{
-		if (cur->next!=-1)
-			cur = &pagetable[cur->next];
-		else
-		{
-			cur = NULL;
-			break;
-		}
-	}
-	
-	return cur;
+	return &pagetable[getindex(page)];
 }
 
 int 
@@ -199,6 +182,7 @@ getindex(vaddr_t page)
 	int index;
 	struct pte *cur;
 
+	lock_acquire(pagetable_lock);
 	index = hash(page, curthread->t_pid);
 	cur = &pagetable[index];
 	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
@@ -215,6 +199,7 @@ getindex(vaddr_t page)
 		}
 	}
 
+	lock_release(pagetable_lock);
 	return index;
 }
 	
@@ -236,6 +221,7 @@ pagetable_dump(void)
 {
 	u_int32_t i;
 
+	lock_acquire(pagetable_lock);
 	kprintf("PAGETABLE DUMP\n");
 	for (i=0;i<pagetable_size;i++)
 	{
@@ -249,4 +235,5 @@ pagetable_dump(void)
 				pagetable[i].control & X_B ? 'x' : '-',
 				pagetable[i].next);
 	}
+	lock_release(pagetable_lock);
 }
