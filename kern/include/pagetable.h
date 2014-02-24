@@ -57,10 +57,10 @@ struct pte
 void
 pagetable_bootstrap(void);
 
-/* add a page belonging to the current process with the passed
+/* add a page belonging to the to process pid with the passed
  * permissions */
 void
-addpage(vaddr_t page, int read, int write, int execute);
+addpage(vaddr_t page, pid_t pid, int read, int write, int execute);
 
 /* invalidate the passed page belonging to the current process */
 void
@@ -84,7 +84,7 @@ getindex(vaddr_t page);
  * to account for the high likely hood that many processes will be 
  * referencing the same virtual address */
 int
-hash(vaddr_t page);
+hash(vaddr_t page, pid_t pid);
 
 void
 pagetable_dump(void);
