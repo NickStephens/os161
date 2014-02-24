@@ -6,6 +6,8 @@
 #include <curthread.h>
 #include <pagetable.h>
 
+int pagetable_initialized;
+
 void
 pagetable_bootstrap(void)
 {
@@ -127,6 +129,7 @@ addpage(vaddr_t page, int read, int write, int execute)
 	/* XXX possible this loops forever */
 	while (cur->control & VALID_B)
 	{
+		kprintf("addpage: encountered valid page index %d\n", index);
 		pre = cur;
 		if (cur->next==-1)
 			index = (index*index) % pagetable_size;
@@ -188,6 +191,33 @@ getpte(vaddr_t page)
 	return cur;
 }
 
+int 
+getindex(vaddr_t page)
+{
+	int index;
+	struct pte *cur;
+
+	index = hash(page);
+	cur = &pagetable[index];
+	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
+	{
+		if (cur->next!=-1)
+		{
+			cur = &pagetable[cur->next];
+			index = cur->next;
+		}
+		else
+		{
+			index = -1;
+			break;
+		}
+	}
+
+	return index;
+}
+	
+	
+
 /* a stupid hash function for the inverted page table */
 /* for the most part a lot of these values are somewhat arbitrary until
  * I take the time to research what makes a good hash function. Generally
@@ -197,4 +227,24 @@ int
 hash(vaddr_t page)
 {
 	return ((page/10) + ((curthread->t_pid * 7) * 0x01000000)) % pagetable_size;
+}
+
+void
+pagetable_dump(void)
+{
+	u_int32_t i;
+
+	kprintf("PAGETABLE DUMP\n");
+	for (i=0;i<pagetable_size;i++)
+	{
+		kprintf("| %02d | %08x | %02d | %c | %c%c%c | %02d |\n",
+				i,
+			 	pagetable[i].page,
+				pagetable[i].owner,
+				pagetable[i].control & VALID_B ? 'v' : '-',
+				pagetable[i].control & R_B ? 'r' : '-',
+				pagetable[i].control & W_B ? 'w' : '-',
+				pagetable[i].control & X_B ? 'x' : '-',
+				pagetable[i].next);
+	}
 }
