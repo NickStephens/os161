@@ -115,12 +115,12 @@ free_kpages(vaddr_t page)
 }
 
 void
-addpage(vaddr_t page, int read, int write, int execute)
+addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 {
 	int index; 
 	struct pte *pre, *cur;
 
-	index = hash(page);
+	index = hash(page, pid);
 
 	lock_acquire(pagetable_lock);
 	pre = NULL;
@@ -129,7 +129,9 @@ addpage(vaddr_t page, int read, int write, int execute)
 	/* XXX possible this loops forever */
 	while (cur->control & VALID_B)
 	{
+		kprintf("page: %08x\n", page);
 		kprintf("addpage: encountered valid page index %d\n", index);
+		kprintf("nextpage.. %d\n", cur->next);
 		pre = cur;
 		if (cur->next==-1)
 			index = (index*index) % pagetable_size;
@@ -164,7 +166,7 @@ void
 invalidatepage(vaddr_t page)
 {
 	lock_acquire(pagetable_lock);
-	pagetable[hash(page)].control &= ~VALID_B;
+	pagetable[hash(page, curthread->t_pid)].control &= ~VALID_B;
 	lock_release(pagetable_lock);
 }
 
@@ -174,7 +176,7 @@ getpte(vaddr_t page)
 	int index;
 	struct pte *cur;
 
-	index = hash(page);
+	index = hash(page, curthread->t_pid);
 	cur = &pagetable[index];
 
 	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
@@ -197,7 +199,7 @@ getindex(vaddr_t page)
 	int index;
 	struct pte *cur;
 
-	index = hash(page);
+	index = hash(page, curthread->t_pid);
 	cur = &pagetable[index];
 	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
 	{
@@ -224,9 +226,9 @@ getindex(vaddr_t page)
  * speaking we want to give more weight to the pid because these
  * are guaranteed to be unique */
 int
-hash(vaddr_t page)
+hash(vaddr_t page, pid_t pid)
 {
-	return ((page/10) + ((curthread->t_pid * 7) * 0x01000000)) % pagetable_size;
+	return ((page/10) + ((pid * 7) * 0x01000000)) % pagetable_size;
 }
 
 void

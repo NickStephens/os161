@@ -2,6 +2,8 @@
 #include <kern/errno.h>
 #include <lib.h>
 #include <array.h>
+#include <thread.h>
+#include <curthread.h>
 #include <addrspace.h>
 #include <vm.h>
 #include <pagetable.h>
@@ -62,9 +64,11 @@ as_create(void)
 }
 
 int
-as_copy(struct addrspace *old, struct addrspace **ret)
+as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 {
 	struct addrspace *newas;
+	struct page *newpage, *page;
+	int i;
 
 	newas = as_create();
 	if (newas==NULL) {
@@ -74,13 +78,24 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	/*
 	 * Write this.
 	 */
-
-	/* 
-	 * loop grabbing ptes 
-	 */
-
-	(void)old;
 	
+	for(i=0;i<array_getnum(old->pages);i++)
+	{
+		newpage = (struct page *) kmalloc(sizeof(struct page));
+		if (newpage==NULL)
+			return ENOMEM;
+		page = (struct page *) array_getguy(old->pages, i);
+		memcpy(newpage, page, sizeof(struct page));
+		array_add(newas->pages, newpage);
+
+		/* problem, adds pages under pid of parent */
+		addpage(newpage->vaddr,
+			pid, 
+			newpage->perms & P_R_B,
+			newpage->perms & P_W_B,
+			newpage->perms & P_X_B);
+	}
+
 	*ret = newas;
 	return 0;
 }
@@ -91,9 +106,15 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
-	/*
-	 * Clean up as needed.
-	 */
+	struct page *p;
+	int i;
+
+	for(i=0;i<array_getnum(as->pages);i++)
+	{
+		p = (struct array *) array_getguy(as->pages, i);
+		invalidatepage(p->vaddr);
+		kfree(p);
+	}
 	
 	kfree(as);
 }
@@ -171,6 +192,7 @@ as_prepare_load(struct addrspace *as)
 	{
 		p = (struct page *) array_getguy(as->pages, i);
 		addpage(p->vaddr, 
+			curthread->t_pid,
 			p->perms & P_R_B,
 			p->perms & P_W_B,
 			p->perms & P_X_B);
@@ -216,7 +238,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 		p->perms = P_R_B | P_W_B;
 		array_add(as->pages, p);
 
-		addpage(p->vaddr, p->perms & P_R_B, 
+		addpage(p->vaddr, curthread->t_pid, p->perms & P_R_B, 
 			p->perms & P_W_B, p->perms & P_X_B);
 	}
 
