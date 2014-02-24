@@ -83,7 +83,9 @@ alloc_kpages(int npages)
 		free = 0;
 		for(i=0;i<pagetable_size;i++)
 		{
+			/* debug
 			kprintf("page [%d] validity: %d\n", i, PTE_VALID(pagetable[i])); 
+			*/
 			if (!PTE_VALID(pagetable[i]))
 			{
 				for(j=1;j<npages;j++)
@@ -132,9 +134,11 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	/* XXX possible this loops forever */
 	while (cur->control & VALID_B)
 	{
+		/* debug 
 		kprintf("page: %08x, pid: %08x\n", page, pid);
 		kprintf("addpage: encountered valid page index %d\n", index);
 		kprintf("nextpage.. %d\n", cur->next);
+		*/
 		pre = cur;
 		if (cur->next==-1)
 		{
@@ -150,7 +154,7 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 		pre->next = index;
 
 	cur->page    = page;
-	cur->owner   = curthread->t_pid;
+	cur->owner   = pid;
 	cur->control = 0;
 	
 	if (read)	
