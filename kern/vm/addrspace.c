@@ -142,7 +142,9 @@ as_activate(struct addrspace *as)
 	/* make sure tlblo contains the current pid 
 	 * within the asid field */
 
-	md_cacheclear();
+	md_cacheflush();
+
+	//md_loadprocid();
 
 	(void)as;  // suppress warning until code gets written
 }
