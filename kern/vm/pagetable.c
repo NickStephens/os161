@@ -135,6 +135,12 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	cur = &pagetable[index];
 
 	/* XXX possible this loops forever */
+	/*
+	lock_release(pagetable_lock);
+	pagetable_dump();
+	lock_acquire(pagetable_lock);
+	kprintf("[addpage] attempting index %d\n", index);
+	*/
 	while (cur->control & VALID_B)
 	{
 		/* debug 
@@ -145,8 +151,8 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 		pre = cur;
 		if (cur->next==-1)
 		{
-			index += 2;
-			index = (index*index) % pagetable_size;
+			index = (index+1) % pagetable_size;
+			cur->next = index;
 		}
 		else
 			index = cur->next;
