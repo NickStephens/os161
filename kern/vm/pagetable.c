@@ -190,7 +190,12 @@ invalidatepage(vaddr_t page)
 struct pte *
 getpte(vaddr_t page)
 {
-	return &pagetable[getindex(page)];
+	int index;
+
+	index = getindex(page);
+	if (index==-1)
+		return NULL;
+	return &pagetable[index];
 }
 
 int 
