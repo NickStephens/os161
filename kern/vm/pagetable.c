@@ -7,6 +7,7 @@
 #include <pagetable.h>
 
 int pagetable_initialized;
+unsigned int occupation_cnt;
 
 void
 pagetable_bootstrap(void)
@@ -64,6 +65,7 @@ pagetable_bootstrap(void)
 		panic("pagetable_bootstrap: unable to initialize pagetable_lock\n");
 
 	pagetable_initialized = 1;
+	occupation_cnt = 0;
 
 }
 
@@ -101,6 +103,7 @@ alloc_kpages(int npages)
 				}
 			}
 		}
+		occupation_cnt += npages;
 	}
 	else
 	{
@@ -118,7 +121,7 @@ free_kpages(vaddr_t page)
 	if (pagetable_initialized)
 	{
 		pagetable[INDEX(KVADDR_TO_PADDR(page))].control &= ~VALID_B;
-		//invalidatepage(page);
+		occupation_cnt--;
 	}
 }
 
@@ -135,19 +138,16 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	cur = &pagetable[index];
 
 	/* XXX possible this loops forever */
-	/*
-	lock_release(pagetable_lock);
-	pagetable_dump();
-	lock_acquire(pagetable_lock);
-	kprintf("[addpage] attempting index %d\n", index);
-	*/
+	if (occupation_cnt==pagetable_size)
+	{
+		/* stash in virtual memory */
+		kprintf("[addpage] pagetable occupation limit reached\n");
+		lock_release(pagetable_lock);
+		pagetable_dump();
+		return -1;
+	}
 	while (cur->control & VALID_B)
 	{
-		/* debug 
-		kprintf("page: %08x, pid: %08x\n", page, pid);
-		kprintf("addpage: encountered valid page index %d\n", index);
-		kprintf("nextpage.. %d\n", cur->next);
-		*/
 		pre = cur;
 		if (cur->next==-1)
 		{
@@ -176,6 +176,8 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	cur->control |= VALID_B;
 	cur->next = -1;
 
+	occupation_cnt++;
+
 	lock_release(pagetable_lock);
 	return index;
 }
@@ -188,6 +190,9 @@ invalidatepage(vaddr_t page)
 	int index;
 
 	index = getindex(page);
+	if (index == -1)
+		return;	
+	occupation_cnt--;
 	lock_acquire(pagetable_lock);
 	pagetable[index].control &= ~VALID_B;
 	lock_release(pagetable_lock);
@@ -200,7 +205,13 @@ getpte(vaddr_t page)
 
 	index = getindex(page);
 	if (index==-1)
+	{
+		/* look in virtual memory */
+		/* swap in page if found */
+		/* swap out replacement if necessary */
+		/* return new pte */
 		return NULL;
+	}
 	return &pagetable[index];
 }
 
@@ -250,7 +261,7 @@ pagetable_dump(void)
 	u_int32_t i;
 
 	lock_acquire(pagetable_lock);
-	kprintf("PAGETABLE DUMP\n");
+	kprintf("PAGETABLE DUMP: OCCUPIED FRAMES %d\n", occupation_cnt);
 	for (i=0;i<pagetable_size;i++)
 	{
 		kprintf("| %02d | %08x | %02d | %c | %c%c%c | %02d |\n",
