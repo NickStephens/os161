@@ -43,5 +43,6 @@ sys_write(int fd, const void *buf, size_t nbytes)
 
 	mpg->offset += nbytes;
 
+	kfree(kbuf);
 	return nbytes;
 }
