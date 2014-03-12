@@ -6,6 +6,7 @@
 #include <curthread.h>
 #include <addrspace.h>
 #include <vm.h>
+#include <mmap.h>
 #include <pagetable.h>
 
 /*
@@ -201,15 +202,10 @@ as_prepare_load(struct addrspace *as)
 	int i;
 	int num = array_getnum(as->pages);
 
-
 	for (i=0;i<num;i++)
 	{
 		p = (struct page *) array_getguy(as->pages, i);
-		addpage(p->vaddr, 
-			curthread->t_pid,
-			p->perms & P_R_B,
-			p->perms & P_W_B,
-			p->perms & P_X_B);
+		addpage(p->vaddr, curthread->t_pid, 1, 1, 1); // enable all permission for writing page in
 	}
 
 
@@ -219,11 +215,19 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
-	/*
-	 * Write this.
-	 */
+	int i;
+	struct page *p;
+	int num = array_getnum(as->pages);
 
-	/* Load into page table */
+	/* update permissions on all pages */
+	for(i=0;i<num;i++)
+	{
+		p = (struct page *) array_getguy(as->pages, i);
+		sys_mprotect(p->vaddr, PAGE_SIZE,
+				(p->perms & P_R_B ? PROT_READ : 0)
+			      | (p->perms & P_W_B ? PROT_WRITE : 0)
+			      | (p->perms & P_X_B ? PROT_EXEC : 0));
+	}
 
 	(void)as;
 	return 0;

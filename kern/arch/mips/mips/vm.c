@@ -49,10 +49,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		paddr = FRAME(index);
 
 		elo = paddr | TLBLO_VALID | TLBLO_DIRTY;
-		/*
 		if (p->control & W_B)
 			elo |= TLBLO_DIRTY;
-			*/
 
 		ehi = faultaddress;	
 
