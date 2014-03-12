@@ -77,6 +77,10 @@ getpte(vaddr_t page);
 int
 getindex(vaddr_t page);
 
+/* update permissions on a given page, returns negative on a error */
+int
+changeperms(vaddr_t page, int prots);
+
 /* the inverted pagetable hash function. The result of this function
  * determines which index into the pagetable we place a given page.
  * the function takes both the virtual address representing the page

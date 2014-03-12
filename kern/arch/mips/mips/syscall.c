@@ -152,6 +152,9 @@ mips_syscall(struct trapframe *tf)
 			err = 0;
 		break;
 	
+	    case SYS_mprotect:
+		err = sys_mprotect((vaddr_t) tf->tf_a0, (size_t) tf->tf_a1, 
+				(int) tf->tf_a2);
 	    default:
 		kprintf("Unknown syscall %d\n", callno);
 		err = ENOSYS;

@@ -397,6 +397,7 @@ file	  syscall/read.c
 file	  syscall/close.c
 file	  syscall/fstat.c
 file	  syscall/lseek.c
+file	  syscall/mprotect.c
 
 #
 # process api

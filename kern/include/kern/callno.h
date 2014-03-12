@@ -40,6 +40,8 @@
 #define SYS___getcwd     29
 #define SYS_stat         30
 #define SYS_lstat        31
+#define SYS_mmap	 32
+#define SYS_mprotect	 33
 /*CALLEND*/
 
 

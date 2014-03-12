@@ -4,6 +4,7 @@
 #include <machine/vm.h>
 #include <thread.h>
 #include <curthread.h>
+#include <mmap.h>
 #include <pagetable.h>
 
 int pagetable_initialized;
@@ -242,7 +243,24 @@ getindex(vaddr_t page)
 	return index;
 }
 	
-	
+int
+changeperms(vaddr_t page, int protections)
+{
+	struct pte *ppte;
+
+	ppte = getpte(page);
+	if (ppte==NULL)
+		return -1;
+	ppte->control &= ~(R_B | W_B | X_B);
+	if (protections & PROT_READ)
+		ppte->control |= R_B;
+	if (protections & PROT_WRITE)
+		ppte->control |= W_B;
+	if (protections & PROT_EXEC)
+		ppte->control |= X_B;
+
+	return 0;
+}
 
 /* a stupid hash function for the inverted page table */
 /* for the most part a lot of these values are somewhat arbitrary until
