@@ -418,6 +418,7 @@ file	  file/file.c
 
 optofffile dumbvm   vm/addrspace.c
 file	  vm/pagetable.c
+file	  vm/swap.c
 
 #
 # Network

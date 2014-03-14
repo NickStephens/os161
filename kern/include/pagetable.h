@@ -59,9 +59,12 @@ void
 pagetable_bootstrap(void);
 
 /* add a page belonging to the to process pid with the passed
- * permissions, returns the pagetable index of the new page */
+ * permissions, returns the pagetable index of the new page. 
+ * accepts an optional content argument, if this argument is 
+ * non NULL PAGE_SIZE bytes starting at content will be transfered 
+ * to the new page/swap space */
 int
-addpage(vaddr_t page, pid_t pid, int read, int write, int execute);
+addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *content);
 
 /* invalidate the passed page belonging to the current process */
 void

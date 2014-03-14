@@ -104,11 +104,6 @@ as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 
 	}
 
-	/* as_prepare_load - place new pages in frames */
-
-	/* memmove */
-	
-
 	*ret = newas;
 	return 0;
 }

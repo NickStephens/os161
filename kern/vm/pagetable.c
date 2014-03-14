@@ -5,6 +5,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <mmap.h>
+#include <swap.h>
 #include <pagetable.h>
 
 int pagetable_initialized;
@@ -127,7 +128,7 @@ free_kpages(vaddr_t page)
 }
 
 int
-addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
+addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *content)
 {
 	int index; 
 	struct pte *pre, *cur;
@@ -138,12 +139,13 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 	pre = NULL;
 	cur = &pagetable[index];
 
-	/* XXX possible this loops forever */
 	if (occupation_cnt==pagetable_size)
 	{
 		/* stash in virtual memory */
 		kprintf("[addpage] pagetable occupation limit reached\n");
 		lock_release(pagetable_lock);
+		swapout(page, pid, content, read, write, execute);
+
 		pagetable_dump();
 		return -1;
 	}
@@ -176,6 +178,15 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute)
 
 	cur->control |= VALID_B;
 	cur->next = -1;
+
+	/* transfer from content */
+	/* content is assumed to be a kernel vaddr */
+	if (content!=NULL)
+	{
+		memmove((void *)PADDR_TO_KVADDR(FRAME(index)), 
+			(const void *)content, 
+			PAGE_SIZE);
+	}
 
 	occupation_cnt++;
 
