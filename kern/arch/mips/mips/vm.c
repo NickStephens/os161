@@ -57,7 +57,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		// kprintf("curthread->pid %08x\n\
 			 curthread->pid << 6 %08x\n", curthread->t_pid,
 		//		 curthread->t_pid << 6);
-		ehi |= curthread->t_pid << 6;
+		//ehi |= curthread->t_pid << 6;
 		//kprintf("[vm_fault]: ehi: %08x pid: %d\n", ehi, curthread->t_pid);
 		TLB_Write(ehi, elo, i);
 		splx(spl);
