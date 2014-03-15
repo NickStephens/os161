@@ -188,6 +188,7 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *c
 		if (cur->next==-1) /* valid but end of chain */
 		{
 			index = findnextinvalid(++index);
+			//kprintf("[addpage] findnextinvalid() returning %d\n", index);
 			cur->next = index;
 		}
 		else /* valid and chain continues */
@@ -265,9 +266,9 @@ getpte(vaddr_t page)
 			return NULL;
 
 		/* swap in page if found */
-		rindex = getoldest();	
-
 		lock_acquire(pagetable_lock);
+
+		rindex = getoldest(); // REPLACEMENT POLICY GOES HERE
 
 		/* if the page we're replacing wasn't valid */
 		if (!(pagetable[rindex].control & VALID_B))
@@ -310,10 +311,7 @@ getindex(vaddr_t page)
 		{
 			if (cur->next==origindex)
 			{
-				//kprintf("[getindex] LOOP DETECTED\n");
-				lock_release(pagetable_lock);
-				//pagetable_dump();
-				lock_acquire(pagetable_lock);
+				//panic("[getindex] loop detected\n");
 				index = -1;
 				break;
 			}
@@ -429,7 +427,10 @@ findnextinvalid(int from)
 	cur = &pagetable[from];
 
 	while (cur->control & VALID_B)
-		cur = &pagetable[++from % pagetable_size];
+	{
+		from = (from + 1) % pagetable_size;
+		cur  = &pagetable[++from % pagetable_size];
+	}
 
 	return from;
 }
