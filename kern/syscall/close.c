@@ -40,7 +40,9 @@ sys_close(int fd)
 	vfs_close(mpg->vn);
 	
 	kfree(mpg);
-	array_setguy(proc->filetable, sys_index, NULL);
+
+	if (sys_index < array_getnum(proc->filetable))
+		array_setguy(proc->filetable, sys_index, NULL);
 
 	lock_release(filetable_lock);
 	return 0;
