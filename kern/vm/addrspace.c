@@ -99,7 +99,7 @@ as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 
 
 	}
-	kprintf("[as_copy] pid (%d) -> pid (%d) completed\n", curthread->t_pid, pid);
+	//kprintf("[as_copy] pid (%d) -> pid (%d) completed\n", curthread->t_pid, pid);
 
 	*ret = newas;
 	return 0;

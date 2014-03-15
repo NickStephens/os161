@@ -52,6 +52,7 @@ struct pte
 	pid_t     owner;
 	u_int8_t  control;
 	int16_t   next;
+	int16_t	  prev;
 };
 
 /* bootstrap */
@@ -92,6 +93,10 @@ appendtochain(int index, int chainstart);
 /* returns the oldest page in the pagetable */
 int 
 getoldest();
+
+/* finds the next invalid index starting at from */
+int
+findnextinvalid(int from);
 
 /* the inverted pagetable hash function. The result of this function
  * determines which index into the pagetable we place a given page.
