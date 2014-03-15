@@ -198,6 +198,7 @@ md_forkentry(u_int32_t *args)
 
 	argtf = args[0]; argas = args[1]; argpid = args[2];
 
+	//kprintf("[md_forkentry] pid %d\n", argpid);
 	memmove(&childtf, argtf, sizeof(struct trapframe));
 	
 	curthread->t_vmspace = argas;
