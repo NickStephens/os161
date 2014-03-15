@@ -58,7 +58,7 @@ sys_fork(struct trapframe *tf)
 	}
 
 	entryargs[0] = childtrapframe; entryargs[1] = retaddrspace; entryargs[2] = childpid;
-	result = thread_fork("fork", entryargs, 0, md_forkentry, &retthread);
+	result = thread_fork(curthread->t_name, entryargs, 0, md_forkentry, &retthread);
 	if (result)
 	{
 		return -result;
