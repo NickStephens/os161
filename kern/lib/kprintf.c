@@ -91,6 +91,8 @@ panic(const char *fmt, ...)
 	 */
 	static volatile int evil;
 
+	pagetable_dump();
+
 	if (evil==0) {
 		evil = 1;
 
