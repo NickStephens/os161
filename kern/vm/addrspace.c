@@ -87,22 +87,19 @@ as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 		memcpy(newpage, page, sizeof(struct page));
 		array_add(newas->pages, newpage);
 
+		oindex = getindex(newpage->vaddr);
+		of = FRAME(oindex);
+
 		nindex = addpage(newpage->vaddr,
 				pid, 
 				newpage->perms & P_R_B,
 				newpage->perms & P_W_B,
-				newpage->perms & P_X_B);
+				newpage->perms & P_X_B,
+				PADDR_TO_KVADDR(of));
 
-		oindex = getindex(newpage->vaddr);
-
-		nf = FRAME(nindex);
-		of = FRAME(oindex);
-
-		memmove((void *)PADDR_TO_KVADDR(nf),
-			(const void *)PADDR_TO_KVADDR(of),
-			PAGE_SIZE);
 
 	}
+	kprintf("[as_copy] pid (%d) -> pid (%d) completed\n", curthread->t_pid, pid);
 
 	*ret = newas;
 	return 0;
@@ -117,13 +114,17 @@ as_destroy(struct addrspace *as)
 	struct page *p;
 	int i;
 
+	//pagetable_dump();
+
 	for(i=0;i<array_getnum(as->pages);i++)
 	{
-		p = (struct array *) array_getguy(as->pages, i);
+		p = (struct page *) array_getguy(as->pages, i);
 		invalidatepage(p->vaddr);
 		kfree(p);
 	}
-	
+	//pagetable_dump();
+
+	array_destroy(as->pages);	
 	kfree(as);
 }
 
@@ -200,7 +201,7 @@ as_prepare_load(struct addrspace *as)
 	for (i=0;i<num;i++)
 	{
 		p = (struct page *) array_getguy(as->pages, i);
-		addpage(p->vaddr, curthread->t_pid, 1, 1, 1); // enable all permission for writing page in
+		addpage(p->vaddr, curthread->t_pid, 1, 1, 1, NULL); // enable all permission for writing page in
 	}
 
 
@@ -252,7 +253,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 		array_add(as->pages, p);
 
 		addpage(p->vaddr, curthread->t_pid, p->perms & P_R_B, 
-			p->perms & P_W_B, p->perms & P_X_B);
+			p->perms & P_W_B, p->perms & P_X_B, NULL);
 	}
 
 	return 0;

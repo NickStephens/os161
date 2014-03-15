@@ -43,9 +43,14 @@ int
 swapout(vaddr_t page, pid_t pid, const void *content, int read, int write, int execute);
 
 /* swaps the requested page out of the 'swap' and places into the 
- * page table */
+ * page table at index */
 int 
-swapin(vaddr_t page, pid_t pid);
+swapin(int index, vaddr_t page, pid_t pid);
+
+/* gets the swap entry corresponding the page and pid return -1 if the
+ * entry cannot be found */
+int
+getswap(vaddr_t page, pid_t pid);
 
 static
 int

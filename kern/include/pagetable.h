@@ -84,6 +84,15 @@ getindex(vaddr_t page);
 int
 changeperms(vaddr_t page, int prots);
 
+/* follows the chain described by the pagetable index chainstart until a 
+ * -1 in encountered and places -1 into the next attribute */
+void
+appendtochain(int index, int chainstart);
+
+/* returns the oldest page in the pagetable */
+int 
+getoldest();
+
 /* the inverted pagetable hash function. The result of this function
  * determines which index into the pagetable we place a given page.
  * the function takes both the virtual address representing the page

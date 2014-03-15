@@ -79,11 +79,14 @@ vaddr_t
 alloc_kpages(int npages)
 {
 	u_int32_t i;
+	struct pte *oldpte;
 	paddr_t free;
+	int index;
 	int j;
 
 	if (pagetable_initialized)
 	{
+		lock_acquire(pagetable_lock);
 		free = 0;
 		for(i=0;i<pagetable_size;i++)
 		{
@@ -99,19 +102,47 @@ alloc_kpages(int npages)
 				}
 				if (j==npages)
 				{
+					occupation_cnt += npages;
 					free = FRAME(i);
-					pagetable[i].control = VALID_B | SUPER_B;
+					pagetable[i].control = VALID_B | REF_B | SUPER_B;
 					break;
 				}
 			}
 		}
-		occupation_cnt += npages;
+		lock_release(pagetable_lock);
 	}
 	else
 	{
 		free = ram_stealmem(npages);
 	}
+	
+	if (free==0)
+	{
+		lock_acquire(pagetable_lock);
 
+		index = getoldest();
+		/* if the page we're replacing wasn't valid
+		 * increase occupancy count */
+		if (!(pagetable[index].control & VALID_B))
+			occupation_cnt++;
+
+		oldpte = (struct pte *) &pagetable[index];
+
+		swapout(oldpte->page,
+			oldpte->owner,
+			PADDR_TO_KVADDR(FRAME(index)),	
+			oldpte->control & R_B,
+			oldpte->control & W_B,
+			oldpte->control & X_B);
+
+		/* only guaranteed to be one page */ 
+		free = FRAME(index);
+
+		oldpte->page = 0;
+		oldpte->owner = 0;
+		oldpte->control |= VALID_B | REF_B | SUPER_B;
+		lock_release(pagetable_lock);
+	}
 	return PADDR_TO_KVADDR(free);
 }
 
@@ -124,6 +155,7 @@ free_kpages(vaddr_t page)
 	{
 		pagetable[INDEX(KVADDR_TO_PADDR(page))].control &= ~VALID_B;
 		occupation_cnt--;
+		kprintf("[free_kpages] %d (%08x) new occupation_cnt %d\n", INDEX(KVADDR_TO_PADDR(page)), page, occupation_cnt);
 	}
 }
 
@@ -139,14 +171,13 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *c
 	pre = NULL;
 	cur = &pagetable[index];
 
+
+	//kprintf("[addpage] (%08x) occupation_cnt %d index (%d)\n", page, occupation_cnt, index);
 	if (occupation_cnt==pagetable_size)
 	{
 		/* stash in virtual memory */
-		kprintf("[addpage] pagetable occupation limit reached\n");
 		lock_release(pagetable_lock);
 		swapout(page, pid, content, read, write, execute);
-
-		pagetable_dump();
 		return -1;
 	}
 	while (cur->control & VALID_B)
@@ -177,7 +208,7 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *c
 		cur->control |= X_B;
 
 	cur->control |= VALID_B;
-	cur->next = -1;
+	cur->next = -1; 
 
 	/* transfer from content */
 	/* content is assumed to be a kernel vaddr */
@@ -200,10 +231,15 @@ void
 invalidatepage(vaddr_t page)
 {
 	int index;
+	
+	kprintf("[invalidatepage] (%08x) %d %d\n", page, occupation_cnt, curthread->t_pid);
 
 	index = getindex(page);
+	kprintf("[invalidatepage] getindex -> %d\n", index);
 	if (index == -1)
+	{
 		return;	
+	}
 	occupation_cnt--;
 	lock_acquire(pagetable_lock);
 	pagetable[index].control &= ~VALID_B;
@@ -213,16 +249,42 @@ invalidatepage(vaddr_t page)
 struct pte *
 getpte(vaddr_t page)
 {
+	struct pte *oldpte;
+	int rindex;
 	int index;
 
 	index = getindex(page);
 	if (index==-1)
 	{
-		/* look in virtual memory */
+		/* is it in swap? */
+		if (getswap(page, curthread->t_pid)==-1)
+			return NULL;
+
 		/* swap in page if found */
-		/* swap out replacement if necessary */
-		/* return new pte */
-		return NULL;
+		rindex = getoldest();	
+
+		lock_acquire(pagetable_lock);
+
+		/* if the page we're replacing wasn't valid */
+		if (!(pagetable[rindex].control & VALID_B))
+			occupation_cnt++;
+
+		oldpte = (struct pte *) &pagetable[rindex];	
+		/* append the replacement page to the proper hash chain */
+		appendtochain(rindex, hash(page, curthread->t_pid));
+
+		swapout(oldpte->page, 
+			oldpte->owner,
+			PADDR_TO_KVADDR(FRAME(rindex)),
+			oldpte->control & R_B,
+			oldpte->control & W_B,
+			oldpte->control & X_B);
+
+		/* handles all memory transfer and sets up new pte */
+		swapin(rindex, page, curthread->t_pid);
+
+		lock_release(pagetable_lock);
+		return &pagetable[rindex];
 	}
 	return &pagetable[index];
 }
@@ -231,15 +293,23 @@ int
 getindex(vaddr_t page)
 {
 	int index;
+	int origindex;
 	struct pte *cur;
 
 	lock_acquire(pagetable_lock);
-	index = hash(page, curthread->t_pid);
+	origindex = index = hash(page, curthread->t_pid);
+	kprintf("[getindex] index (%d) page (%08x)\n", index, page);
 	cur = &pagetable[index];
 	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
 	{
 		if (cur->next!=-1)
 		{
+			if (cur->next==origindex)
+			{
+				kprintf("[getindex] LOOP DETECTED\n");
+				index = -1;
+				break;
+			}
 			index = cur->next;
 			cur = &pagetable[cur->next];
 		}
@@ -289,19 +359,52 @@ pagetable_dump(void)
 {
 	u_int32_t i;
 
-	lock_acquire(pagetable_lock);
-	kprintf("PAGETABLE DUMP: OCCUPIED FRAMES %d\n", occupation_cnt);
-	for (i=0;i<pagetable_size;i++)
+	if (pagetable_initialized)
 	{
-		kprintf("| %02d | %08x | %02d | %c | %c%c%c | %02d |\n",
-				i,
-			 	pagetable[i].page,
-				pagetable[i].owner,
-				pagetable[i].control & VALID_B ? 'v' : '-',
-				pagetable[i].control & R_B ? 'r' : '-',
-				pagetable[i].control & W_B ? 'w' : '-',
-				pagetable[i].control & X_B ? 'x' : '-',
-				pagetable[i].next);
+
+		kprintf("PAGETABLE DUMP: OCCUPIED FRAMES %d\n", occupation_cnt);
+		for (i=0;i<pagetable_size;i++)
+		{
+			kprintf("| %02d | %08x | %02d | %c | %c%c%c | %02d |\n",
+					i,
+					pagetable[i].page,
+					pagetable[i].owner,
+					pagetable[i].control & VALID_B ? 'v' : '-',
+					pagetable[i].control & R_B ? 'r' : '-',
+					pagetable[i].control & W_B ? 'w' : '-',
+					pagetable[i].control & X_B ? 'x' : '-',
+					pagetable[i].next);
+		}
 	}
-	lock_release(pagetable_lock);
+}
+
+void
+appendtochain(int index, int chainstart)
+{
+	struct pte *cur;
+
+	cur = &pagetable[chainstart];
+	while (cur->next!=-1)
+		cur = &pagetable[cur->next];			
+
+	cur->next = index;
+}
+
+int
+getoldest()
+{
+	struct pte *cur;
+	int i;
+	 
+	i = 0;
+	cur = &pagetable[i];
+
+	while ((cur->control & VALID_B) && (cur->control & REF_B))
+	{
+		if (!(cur->control & SUPER_B))
+			cur->control &= ~REF_B; /* turn off reference */
+		cur = &pagetable[++i % pagetable_size];
+	}
+
+	return i;
 }
