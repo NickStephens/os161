@@ -45,6 +45,7 @@
 struct addrspace *
 as_create(void)
 {
+
 	struct addrspace *as = kmalloc(sizeof(struct addrspace));
 	if (as==NULL) {
 		return NULL;
@@ -114,15 +115,14 @@ as_destroy(struct addrspace *as)
 	struct page *p;
 	int i;
 
-	//pagetable_dump();
-
 	for(i=0;i<array_getnum(as->pages);i++)
 	{
 		p = (struct page *) array_getguy(as->pages, i);
 		invalidatepage(p->vaddr);
 		kfree(p);
 	}
-	//pagetable_dump();
+
+	invalidateswapentries(curthread->t_pid);
 
 	array_destroy(as->pages);	
 	kfree(as);
@@ -245,12 +245,23 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
 	for(curpage=0;curpage<npages;curpage++)
 	{
+		if (curthread->t_pid==24)	
+		{
+			kprintf("[as_define_stack] before kmalloc\n");
+			pagetable_dump_one(2);
+		}
 		p = (struct page *) kmalloc(sizeof(struct page));
 		if (p==NULL)
 			return ENOMEM;
+		if (curthread->t_pid==24)	
+		{
+			kprintf("[as_define_stack] after kmalloc\n");
+			pagetable_dump_one(2);
+		}
 		p->vaddr = stacktop + curpage * PAGE_SIZE;
 		p->perms = P_R_B | P_W_B;
 		array_add(as->pages, p);
+
 
 		addpage(p->vaddr, curthread->t_pid, p->perms & P_R_B, 
 			p->perms & P_W_B, p->perms & P_X_B, NULL);

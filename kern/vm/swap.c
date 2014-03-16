@@ -48,11 +48,26 @@ findfreeswapped()
 {
 	int i;
 
+	lock_acquire(swapped_lock);
 	for(i=0;i<swapsize;i++)
 		if (!swapped[i].valid)
 			break;
 
+	lock_release(swapped_lock);
 	return i;
+}
+
+void
+invalidateswapentries(pid_t pid)
+{
+	int i;
+
+	lock_acquire(swapped_lock);
+	for(i=0;i<swapsize;i++)
+		if (swapped[i].owner==pid)
+			swapped[i].valid = 0;
+
+	lock_release(swapped_lock);
 }
 
 int
@@ -60,11 +75,16 @@ getswap(vaddr_t page, pid_t pid)
 {
 	int i;
 
+	lock_acquire(swapped_lock);
 	for (i=0;i<swapsize;i++)
 		if (swapped[i].valid)
 			if ((swapped[i].addr==page)&&(swapped[i].owner==pid))
+			{
+				lock_release(swapped_lock);
 				return i;
+			}
 
+	lock_release(swapped_lock);
 	return -1;
 }
 
@@ -76,7 +96,8 @@ swapout(vaddr_t page, pid_t pid, const void *content, int read, int write, int e
 	int swap_index;
 
 	swap_index = findfreeswapped();
-	//kprintf("[swapout] pid %d, free swap %d/%d\n", curthread->t_pid, swap_index, swapsize);
+
+	lock_acquire(swapped_lock);
 	if (swap_index==swapsize)
 		panic("[swapout]: swapped array full. system out of memory\n");
 
@@ -87,7 +108,10 @@ swapout(vaddr_t page, pid_t pid, const void *content, int read, int write, int e
 		result = VOP_WRITE(swap, &ku);
 
 		if (result)
+		{
+			lock_release(swapped_lock);
 			return -result;
+		}
 	} 
 	else
 	{
@@ -104,6 +128,7 @@ swapout(vaddr_t page, pid_t pid, const void *content, int read, int write, int e
 	if (execute)
 		swapped[swap_index].perms |= X_B;
 
+	lock_release(swapped_lock);
 	return 0;
 }
 
@@ -116,9 +141,10 @@ swapin(int index, vaddr_t page, pid_t pid)
 	int swap_index;
 	int result;
 
-	//kprintf("[swapin] pid %d page (%08x)\n", curthread->t_pid, page);
 	/* should never fail */
 	swap_index = getswap(page, pid);
+
+	lock_acquire(swapped_lock);
 	if (swap_index==-1)
 		panic("[swapin]: invoked with a bad page (%08x) and pid (%d)\n", page, pid);
 
@@ -155,10 +181,33 @@ swapin(int index, vaddr_t page, pid_t pid)
 
 	result = VOP_READ(swap, &ku);
 
+	lock_release(swapped_lock);
 	if (result)
 	{
 		return -result;
 	}
 
 	return 0;
+}
+
+void
+swappeddump(void)
+{
+	int i;
+	
+	lock_acquire(swapped_lock);
+
+	kprintf("SWAPPED ARRAY:\n");
+	for(i=0;i<swapsize;i++)
+	{
+		kprintf("| %08x | %03d | %c%c%c | %c |\n",
+				swapped[i].addr,
+				swapped[i].owner,
+				swapped[i].perms & R_B ? 'r' : '-',
+				swapped[i].perms & W_B ? 'w' : '-',
+				swapped[i].perms & X_B ? 'x' : '-',
+				swapped[i].valid ? 'v' : '-');
+	}
+
+	lock_release(swapped_lock);
 }

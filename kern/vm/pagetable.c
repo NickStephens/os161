@@ -8,6 +8,7 @@
 #include <swap.h>
 #include <pagetable.h>
 
+int wat=0;
 int pagetable_initialized;
 unsigned int occupation_cnt;
 
@@ -91,9 +92,8 @@ alloc_kpages(int npages)
 		free = 0;
 		for(i=0;i<pagetable_size;i++)
 		{
-			/* debug
-			kprintf("page [%d] validity: %d\n", i, PTE_VALID(pagetable[i])); 
-			*/
+			if (curthread->t_pid==26)
+				kprintf("page [%d] validity: %d\n", i, PTE_VALID(pagetable[i])); 
 			if (!PTE_VALID(pagetable[i]))
 			{
 				for(j=1;j<npages;j++)
@@ -178,10 +178,11 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *c
 	if (occupation_cnt==pagetable_size)
 	{
 		/* stash in virtual memory */
-		lock_release(pagetable_lock);
 		swapout(page, pid, content, read, write, execute);
+		lock_release(pagetable_lock);
 		return -1;
 	}
+
 	while (cur->control & VALID_B)
 	{
 		pre = index;
@@ -227,6 +228,12 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *c
 
 	occupation_cnt++;
 
+	if (curthread->t_pid==24)
+	{
+		kprintf("[addpage] (%08x, %02d)\n", page, pid);
+		pagetable_dump_one(2);	
+	}
+
 	lock_release(pagetable_lock);
 	return index;
 }
@@ -241,6 +248,7 @@ invalidatepage(vaddr_t page)
 
 	index = getindex(page);
 	//kprintf("[invalidatepage] %d (%08x) %d %d %d\n", index, page, occupation_cnt, hash(page, curthread->t_pid), curthread->t_pid);
+
 	if (index == -1)
 	{
 		return;	
@@ -303,7 +311,14 @@ getindex(vaddr_t page)
 
 	lock_acquire(pagetable_lock);
 	origindex = index = hash(page, curthread->t_pid);
-	//kprintf("[getindex] index (%d) page (%08x) pid (%d)\n", index, page, curthread->t_pid);
+	/*
+	if ((page==0x00400000) && (curthread->t_pid==31))
+	{
+		wat++;
+		if (wat==4)
+			pagetable_dump();
+	}
+	*/
 	cur = &pagetable[index];
 	while((cur->owner!=curthread->t_pid)||(cur->page!=page))
 	{
@@ -324,6 +339,8 @@ getindex(vaddr_t page)
 			break;
 		}
 	}
+	//if ((page==0x7fff9000)&&(curthread->t_pid==21))
+	//kprintf("[getindex] returning %d\n", index);
 
 	lock_release(pagetable_lock);
 	return index;
@@ -334,6 +351,12 @@ changeperms(vaddr_t page, int protections)
 {
 	struct pte *ppte;
 
+	kprintf("[changeperms] (%08x, %c%c%c)\n", page, 
+			protections & PROT_READ ? 'r' : '-',
+			protections & PROT_WRITE ? 'w' : '-',
+			protections & PROT_EXEC ? 'x' : '-');
+	if (curthread->t_pid==24)
+		pagetable_dump_one(2);	
 	ppte = getpte(page);
 	if (ppte==NULL)
 		return -1;
@@ -357,6 +380,21 @@ int
 hash(vaddr_t page, pid_t pid)
 {
 	return ((page/10) + ((pid * 7) * 0x01000000)) % pagetable_size;
+}
+
+void pagetable_dump_one(int i)
+{
+	i %= pagetable_size;
+	kprintf("| %02d | %08x | %02d | %c | %c%c%c | %02d | %02d |\n",
+			i,
+			pagetable[i].page,
+			pagetable[i].owner,
+			pagetable[i].control & VALID_B ? 'v' : '-',
+			pagetable[i].control & R_B ? 'r' : '-',
+			pagetable[i].control & W_B ? 'w' : '-',
+			pagetable[i].control & X_B ? 'x' : '-',
+			pagetable[i].next,
+			pagetable[i].prev);
 }
 
 void
@@ -389,7 +427,7 @@ appendtochain(int index, int chainstart)
 {
 	struct pte *cur;
 
-	//kprintf("[appendtochain] (%d, %d)\n", index, chainstart);
+	kprintf("[appendtochain] (%d, %d)\n", index, chainstart);
 
 	cur = &pagetable[chainstart];
 	while (cur->next!=-1)
@@ -404,6 +442,8 @@ getoldest()
 {
 	struct pte *cur;
 	int i;
+
+	kprintf("[getoldest] ()\n");
 	 
 	i = 0;
 	cur = &pagetable[i];
@@ -423,6 +463,14 @@ findnextinvalid(int from)
 {
 	struct pte *cur;
 
+	kprintf("[findnextinvalid] (%d)\n", from);
+
+	if (curthread->t_pid==24)
+	{
+		kprintf("[findnextinvalid] before\n");
+		pagetable_dump_one(2);	
+	}
+
 	from = from % pagetable_size;
 	cur = &pagetable[from];
 
@@ -430,6 +478,12 @@ findnextinvalid(int from)
 	{
 		from = (from + 1) % pagetable_size;
 		cur  = &pagetable[++from % pagetable_size];
+	}
+
+	if (curthread->t_pid==24)
+	{
+		kprintf("[findnextinvalid] after\n");
+		pagetable_dump_one(2);	
 	}
 
 	return from;

@@ -81,6 +81,8 @@ cmd_progthread(void *ptr, unsigned long nargs)
 		panic("cmd_progthread: allocating new process %s", strerror(newpid));
 	curthread->t_pid = newpid;
 
+	// no pagetable corruption here
+	
 	/* set up filetable */
 	newft = copyfiletable(1);
 	if (newft==NULL)
@@ -661,6 +663,7 @@ menu_execute(char *line, int isargs)
 			kprintf("OS/161 kernel: %s\n", command);
 		}
 
+		kprintf("command: %s\n", command);
 		result = cmd_dispatch(command);
 		if (result) {
 			kprintf("Menu command failed: %s\n", strerror(result));
@@ -691,9 +694,18 @@ menu_execute(char *line, int isargs)
 void
 menu(char *args)
 {
+	int i;
 	char buf[64];
 
 	menu_execute(args, 1);
+
+	for (i=0;i<25;i++)
+	{
+		kprintf("Process %d:\n", i+2);
+		strcpy(buf, "p /bin/open");
+		menu_execute(buf, 0);
+		//pagetable_dump();
+	}
 
 	while (1) {
 		kprintf("OS/161 kernel [? for menu]: ");
