@@ -119,7 +119,7 @@ alloc_kpages(int npages)
 	{
 		lock_acquire(pagetable_lock);
 
-		index = getoldest();
+		index = pickreplacement();
 		/* if the page we're replacing wasn't valid
 		 * increase occupancy count */
 		if (!(pagetable[index].control & VALID_B))
@@ -200,6 +200,7 @@ addpage(vaddr_t page, pid_t pid, int read, int write, int execute, const void *c
 		pagetable[i].control |= X_B;
 
 	pagetable[i].control |= VALID_B;
+	pagetable[i].control |= REF_B;
 
 	/* transfer from content */
 	/* content is assumed to be a kernel vaddr */
@@ -252,7 +253,7 @@ getpte(vaddr_t page)
 		/* swap in page if found */
 		lock_acquire(pagetable_lock);
 
-		rindex = getoldest(); // REPLACEMENT POLICY GOES HERE
+		rindex = pickreplacement(); // REPLACEMENT POLICY GOES HERE
 
 		/* if the page we're replacing wasn't valid */
 		if (!(pagetable[rindex].control & VALID_B))
@@ -382,7 +383,8 @@ getoldest()
 	{
 		if (!(cur->control & SUPER_B))
 			cur->control &= ~REF_B; /* turn off reference */
-		cur = &pagetable[++i % pagetable_size];
+		i = (i + 1) % pagetable_size;
+		cur = &pagetable[i % pagetable_size];
 	}
 
 	return i;

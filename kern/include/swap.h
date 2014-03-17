@@ -60,6 +60,10 @@ static
 int
 findfreeentry();
 
+/* implements the clock policy to choose a page to best swapout */
+unsigned int
+pickreplacement();
+
 /* debug */
 void
 swapped_dump(void);

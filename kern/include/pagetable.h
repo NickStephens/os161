@@ -41,9 +41,6 @@ extern int pagetable_initialized;
  * 	^     ^     ^     ^	^     ^     ^      ^
  * 	|     |     |     |     |     |     |      |
  *    valid  ref  write   r     w     x  reserved supervisor
- *
- * next    - an index into the pagetable containing the next ptr,
- * 	   negative one when none exists. 
  */
 
 struct pte

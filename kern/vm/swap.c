@@ -11,8 +11,8 @@
 #include <swap.h>
 
 int swapsize;
+unsigned clock_hand;
 struct vnode *swap;
-off_t swap_offset;
 struct swapentry *swapped;
 struct lock *swapped_lock;
 
@@ -23,7 +23,7 @@ swap_bootstrap()
 	int result;
 
 	swapsize = 73 * 2;
-	swap_offset = 0;
+	clock_hand = 0;
 	result = vfs_open("./swap", O_RDWR | O_CREAT, &swap);
 	if (result)
 		panic("[swap_bootstrap]: can't open swapfile %d\n", result);
@@ -182,6 +182,20 @@ swapin(int index, vaddr_t page, pid_t pid)
 	}
 
 	return 0;
+}
+
+unsigned int
+pickreplacement()
+{
+	while ((pagetable[clock_hand].control & VALID_B) 
+			&& (pagetable[clock_hand].control & REF_B))
+	{
+		if (!(pagetable[clock_hand].control & SUPER_B))	
+			pagetable[clock_hand].control &= ~REF_B;
+		clock_hand = (clock_hand + 1) % pagetable_size;
+	}
+
+	return clock_hand;
 }
 
 void
