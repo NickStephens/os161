@@ -165,9 +165,9 @@ swapin(int index, vaddr_t page, pid_t pid)
 	rpte->owner    = swap_page->owner;
 	rpte->control |= VALID_B; 
 
-	if (rpte->prev != -1)
+	if (rpte->prev != -1) /* terminate if tail */
 		pagetable[rpte->prev].next = rpte->next;
-	if (rpte->next != -1)
+	if (rpte->next != -1) /* terminate head */
 		pagetable[rpte->next].prev = rpte->prev;
 	//rpte->next     = -1;
 
