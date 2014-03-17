@@ -100,7 +100,6 @@ as_copy(struct addrspace *old, struct addrspace **ret, pid_t pid)
 
 
 	}
-	kprintf("[as_copy] pid (%d) -> pid (%d) completed\n", curthread->t_pid, pid);
 
 	*ret = newas;
 	return 0;
@@ -245,20 +244,10 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
 	for(curpage=0;curpage<npages;curpage++)
 	{
-		if ((curthread->t_pid==24)&&(curpage==9))	
-		{
-			kprintf("[as_define_stack] before kmalloc\n");
-			pagetable_dump_one(2);
-		}
 		p = (struct page *) kmalloc(sizeof(struct page));
 		if (p==NULL)
 			return ENOMEM;
-		if ((curthread->t_pid==24)&&(curpage==9))	
-		{
-			kprintf("[as_define_stack] after kmalloc\n");
-			kprintf("[as_define_stack] p = %08x\n", p);
-			pagetable_dump_one(2);
-		}
+
 		p->vaddr = stacktop + curpage * PAGE_SIZE;
 		p->perms = P_R_B | P_W_B;
 		array_add(as->pages, p);

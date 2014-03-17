@@ -51,8 +51,6 @@ struct pte
 	vaddr_t   page;
 	pid_t     owner;
 	u_int8_t  control;
-	int16_t   next;
-	int16_t	  prev;
 };
 
 /* bootstrap */
@@ -85,18 +83,9 @@ getindex(vaddr_t page);
 int
 changeperms(vaddr_t page, int prots);
 
-/* follows the chain described by the pagetable index chainstart until a 
- * -1 in encountered and places -1 into the next attribute */
-void
-appendtochain(int index, int chainstart);
-
 /* returns the oldest page in the pagetable */
 int 
 getoldest();
-
-/* finds the next invalid index starting at from */
-int
-findnextinvalid(int from);
 
 /* the inverted pagetable hash function. The result of this function
  * determines which index into the pagetable we place a given page.
@@ -107,6 +96,10 @@ findnextinvalid(int from);
  * referencing the same virtual address */
 int
 hash(vaddr_t page, pid_t pid);
+
+/* debug */
+void 
+pagetable_dump_one(int i);
 
 void
 pagetable_dump(void);

@@ -52,7 +52,15 @@ swapin(int index, vaddr_t page, pid_t pid);
 int
 getswap(vaddr_t page, pid_t pid);
 
+/* invalidates all swapentries belonging to the given process id */
+void
+invalidateswapentries(pid_t pid);
+
 static
 int
 findfreeentry();
+
+/* debug */
+void
+swapped_dump(void);
 #endif

@@ -163,13 +163,7 @@ swapin(int index, vaddr_t page, pid_t pid)
 
 	rpte->page     = swap_page->addr;
 	rpte->owner    = swap_page->owner;
-	rpte->control |= VALID_B; 
-
-	if (rpte->prev != -1) /* terminate if tail */
-		pagetable[rpte->prev].next = rpte->next;
-	if (rpte->next != -1) /* terminate head */
-		pagetable[rpte->next].prev = rpte->prev;
-	//rpte->next     = -1;
+	rpte->control |= VALID_B | REF_B; 
 
 
 	/* turn off swapped entry */
