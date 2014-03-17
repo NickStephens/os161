@@ -216,6 +216,8 @@ copyfiletable(pid_t pid)
 		else
 		{
 			newind = (proc_filemapping *) kmalloc(sizeof(proc_filemapping));
+			if (newind==NULL)
+				panic("[copyfiletable] out of memory\n");
 			*newind = *ind;
 		}
 		array_add(newft, newind);
