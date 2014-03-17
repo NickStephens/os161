@@ -699,14 +699,6 @@ menu(char *args)
 
 	menu_execute(args, 1);
 
-	for (i=0;i<25;i++)
-	{
-		kprintf("Process %d:\n", i+2);
-		strcpy(buf, "p /bin/open");
-		menu_execute(buf, 0);
-		//pagetable_dump();
-	}
-
 	while (1) {
 		kprintf("OS/161 kernel [? for menu]: ");
 		kgets(buf, sizeof(buf));
