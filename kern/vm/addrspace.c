@@ -177,6 +177,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 		if (p==NULL)
 			return ENOMEM;
 		p->vaddr = vaddr + curpage * PAGE_SIZE;
+		p->perms = 0;
 		if (readable)
 			p->perms |= P_R_B;
 		if (writeable)
@@ -200,6 +201,7 @@ as_prepare_load(struct addrspace *as)
 	for (i=0;i<num;i++)
 	{
 		p = (struct page *) array_getguy(as->pages, i);
+
 		addpage(p->vaddr, curthread->t_pid, 1, 1, 1, NULL); // enable all permission for writing page in
 	}
 
