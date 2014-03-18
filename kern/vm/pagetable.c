@@ -1,6 +1,7 @@
 #include <types.h>
 #include <lib.h>
 #include <synch.h>
+#include <kern/unistd.h>
 #include <machine/vm.h>
 #include <thread.h>
 #include <curthread.h>
@@ -8,7 +9,7 @@
 #include <swap.h>
 #include <pagetable.h>
 
-int wat=0;
+struct vnode *randvnode;
 int pagetable_initialized;
 unsigned int occupation_cnt;
 
@@ -16,6 +17,7 @@ void
 pagetable_bootstrap(void)
 {
 	int i;
+	int result;
 	u_int32_t lo, hi;
 	u_int32_t total;
 	u_int32_t frames;
@@ -65,6 +67,12 @@ pagetable_bootstrap(void)
 	pagetable_lock = lock_create("pagetable_lock");
 	if (pagetable_lock==NULL)
 		panic("pagetable_bootstrap: unable to initialize pagetable_lock\n");
+
+	/* open up the random device for ASLR */
+	randvnode = NULL;
+	result = vfs_open("random:", O_RDONLY, &randvnode);
+	if (result)
+		kprintf("[pagetable_bootstrap] WARNING unable to open random device\n");
 
 	pagetable_initialized = 1;
 	occupation_cnt = 0;
