@@ -22,6 +22,9 @@
 /* The attributes of the PTE (Page Table Entry) assume 
  * an inverted pagetable */
 
+/* vnode describing the rand device for ASLR */
+extern struct vnode *randvnode;
+
 /* the pagetable is an array of pagetable entries */
 struct pte  *pagetable;
 struct lock *pagetable_lock;

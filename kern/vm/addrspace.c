@@ -6,6 +6,8 @@
 #include <curthread.h>
 #include <addrspace.h>
 #include <vm.h>
+#include <uio.h>
+#include <vnode.h>
 #include <mmap.h>
 #include <pagetable.h>
 
@@ -236,10 +238,37 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	struct page *p;
 	size_t npages;
 	size_t curpage;
+	struct uio ku;
+	vaddr_t maxvaddr;
+	vaddr_t lowerbound;
+	int i;
+	int result;
+	unsigned int rval;
 	vaddr_t stacktop;
 
-	/* Initial user-level stack pointer */
-	*stackptr = USERSTACK;
+	*stackptr = USERTOP;
+
+	/* Do Stack ASLR */
+	if (randvnode!=NULL)
+	{
+		mk_kuio(&ku, &rval, 4, 0, UIO_READ);
+
+		result = VOP_READ(randvnode, &ku);
+		if (result)
+			return result;
+
+		maxvaddr = (vaddr_t) 0;
+		for(i=0;i<array_getnum(as->pages);i++)
+		{
+			p = (struct page *) array_getguy(as->pages, i);
+			if (p->vaddr>maxvaddr)
+				maxvaddr = p->vaddr;
+		}
+		
+		lowerbound = maxvaddr + ((STACKSIZE * PAGE_SIZE) + PAGE_SIZE);
+		rval %= USERTOP - (USERTOP - lowerbound);
+		*stackptr = (lowerbound + rval) & PAGE_FRAME;
+	}
 
 	npages = (size_t) STACKSIZE;
 	stacktop = *stackptr - PAGE_SIZE * npages;
